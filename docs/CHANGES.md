@@ -72,14 +72,14 @@ New columns in `import_results.csv`:
 For misplaced existing items:
 
 ```text
-[DRY RUN] Existing item EGL_CV-SS-066 / Jama ID 123456 is under parent 111111.
-[DRY RUN] Desired parent is 222222.
-[DRY RUN] Would MOVE item 123456 to parent 222222 using PATCH
+[DRY RUN] Existing item PROJ-SS-066 / Jama ID 999999 is under parent <current_parent>.
+[DRY RUN] Desired parent is <desired_parent>.
+[DRY RUN] Would MOVE item 999999 to parent <desired_parent> using PATCH
 [DRY RUN] Move payload:
 {
   "location": {
     "parent": {
-      "item": 222222
+      "item": <desired_parent>
     },
     "sortOrder": 0
   }
@@ -89,15 +89,15 @@ For misplaced existing items:
 Without --allow-move:
 
 ```text
-[WARN] Item is under parent 111111, but should be under 222222
+[WARN] Item is under parent <current_parent>, but should be under <desired_parent>
 [WARN] Enable --allow-move to move this item to the correct parent
 ```
 
 ### 9. Execute Output
 
 ```text
-[MOVE] Moving item EGL_CV-SS-066 / Jama ID 123456 from parent 111111 to 222222
-[OK] Moved item 123456 from parent 111111 to 222222 using PATCH
+[MOVE] Moving item PROJ-SS-066 / Jama ID 999999 from parent <current_parent> to <desired_parent>
+[OK] Moved item 999999 from parent <current_parent> to <desired_parent> using PATCH
 ```
 
 ### 10. Configuration Summary

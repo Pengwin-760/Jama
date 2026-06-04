@@ -101,9 +101,9 @@ DEBUG_JAMA_GET=true
 
 **GET Debug:**
 ```
-[INFO] Attempting to resolve folder by documentKey: EGL_CV-FLD-220
+[INFO] Attempting to resolve folder by documentKey: PROJ-FLD-220
 [DEBUG] GET URL: https://your-jama-instance.com/rest/v1/items
-[DEBUG] GET params: {'project': 279, 'contains': 'EGL_CV-FLD-220', 'startAt': 0, 'maxResults': 20}
+[DEBUG] GET params: {'project': <project_id>, 'contains': 'PROJ-FLD-220', 'startAt': 0, 'maxResults': 20}
 [DEBUG] GET status: 200
 [DEBUG] GET /items content-type: application/json
 [DEBUG] GET /items response preview (first 500 chars): {"data":[...],"meta":{}}
@@ -247,10 +247,10 @@ If it fails, you'll see detailed error with:
 
 After OAuth succeeds, folder lookup should work:
 ```
-[INFO] Attempting to resolve folder by documentKey: EGL_CV-FLD-220
+[INFO] Attempting to resolve folder by documentKey: PROJ-FLD-220
 [DEBUG] GET URL: https://your-jama-instance.com/rest/v1/items
 [DEBUG] GET status: 200
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-220' -> Jama ID 123456
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-220' -> Jama ID 123456
 ```
 
 ## API Function Coverage
@@ -270,7 +270,7 @@ Script now shows at startup:
 
 ```
 [INFO] Jama base URL: https://your-jama-instance.com/rest/v1
-[INFO] Jama project ID: 279
+[INFO] Jama project ID: <project_id>
 [INFO] OAuth token URL configured: no (using default)
 [INFO] SSL verify: certs/jama_cert_chain.pem
 [INFO] Debug Jama Auth: True
@@ -284,8 +284,8 @@ This helps verify configuration before any API calls are made.
 ### Required:
 ```env
 JAMA_BASE_URL=https://your-jama-instance.com/rest/v1
-JAMA_PROJECT_ID=279
-ROOT_PARENT_ITEM_ID=67890
+JAMA_PROJECT_ID=<your_project_id>
+ROOT_PARENT_ITEM_ID=<root_parent_id>
 
 # Authentication (pick one method):
 # OAuth:

@@ -12,6 +12,23 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
+def get_required_int_env(name: str, description: str = "") -> int:
+    """Get required integer from environment, fail clearly if missing or invalid."""
+    value = os.getenv(name, "").strip()
+    if not value:
+        print(f"[ERROR] Missing required configuration: {name}")
+        if description:
+            print(f"[ERROR] {description}")
+        print(f"[ERROR] Set {name} in your local .env file.")
+        print(f"[ERROR] Do not commit real item type IDs to Git.")
+        sys.exit(1)
+    try:
+        return int(value)
+    except ValueError:
+        print(f"[ERROR] {name} must be an integer, got: {value}")
+        sys.exit(1)
+
+
 # ============================================================
 # VERIFICATION METHOD MAPPING
 # ============================================================
@@ -50,46 +67,14 @@ VERIFICATION_FIELD_PATTERN = re.compile(r"^verification_method\$\d+$", re.IGNORE
 
 
 def is_verification_method_field_key(key: str) -> bool:
-    """
-    Check if a field key matches the verification method pattern.
-
-    Args:
-        key: Field key to check
-
-    Returns:
-        True if key matches pattern like verification_method$112
-
-    Examples:
-        is_verification_method_field_key("verification_method$112") → True
-        is_verification_method_field_key("verification_method$86") → True
-        is_verification_method_field_key("verification_method") → False
-        is_verification_method_field_key("name") → False
-    """
+    """Check if field key matches verification_method$<digits> pattern."""
     if not key:
         return False
     return bool(VERIFICATION_FIELD_PATTERN.match(str(key).strip()))
 
 
 def collect_verification_method_field_keys_from_cached_items(item_type_id: Optional[int] = None) -> set:
-    """
-    Collect verification method field keys from cached Jama items.
-
-    Searches cached items for fields matching "verification_method$<number>",
-    using the same approach as jama2csv.py.
-
-    Args:
-        item_type_id: Optional filter for specific item type
-
-    Returns:
-        Set of field keys matching verification_method$<number>
-
-    Examples:
-        collect_verification_method_field_keys_from_cached_items(112)
-        → {"verification_method$243"}
-
-        collect_verification_method_field_keys_from_cached_items()
-        → {"verification_method$112", "verification_method$243"}
-    """
+    """Collect verification method field keys from cached items, optionally filtered by item type."""
     keys = set()
     global _item_metadata_by_id
 
@@ -112,41 +97,16 @@ def resolve_verification_method_field_key(
     row: Optional[pd.Series] = None
 ) -> tuple[Optional[str], str]:
     """
-    Resolve verification method field key using jama2csv.py approach.
+    Resolve verification method field key.
 
-    Resolution strategy:
-    A. Use exact field key from .env (e.g., verification_method$243)
-    B. Search cached items dynamically
-
-    Dynamic search priority:
-    1. Items with same itemType
-    2. Project-wide if only one candidate exists (with warning)
-    3. Fail if multiple candidates and no type-specific match
-
-    Args:
-        item_type_name: Item type name (e.g., "Software Requirement")
-        item_type_id: Item type ID (e.g., 112)
-        parent_item_id: Reserved for future use
-        row: Reserved for future use
-
-    Returns:
-        Tuple of (field_key, resolution_source):
-        - "env_explicit": from .env with exact key
-        - "type_specific": from cached items of same type
-        - "project_wide": from cached items project-wide (with warning)
-        - None if cannot resolve
-
-    Examples:
-        resolve_verification_method_field_key("Software Requirement", 112)
-        → ("verification_method$243", "type_specific")
+    Priority: 1) Exact key from .env, 2) Same itemType in cache, 3) Project-wide if unique.
+    Returns (field_key, resolution_source).
     """
     configured_field = FIELD_MAP.get("verification_method")
 
-    # Priority A: Exact field key from .env
     if configured_field and is_verification_method_field_key(configured_field):
         return (configured_field, "env_explicit")
 
-    # Priority B & C: Dynamic search of cached items
     global _item_metadata_by_id
 
     if not _item_metadata_by_id:
@@ -157,12 +117,10 @@ def resolve_verification_method_field_key(
             print(f"[WARN] Could not build project cache: {e}")
 
     if not _item_metadata_by_id:
-        # Cache still empty - cannot do dynamic search.
         if configured_field:
             return (f"{configured_field}${item_type_id}", "env_base_fallback")
         return (None, "no_cache")
 
-    # Step 1: Search items of the same type
     type_specific_keys = collect_verification_method_field_keys_from_cached_items(item_type_id)
 
     if len(type_specific_keys) == 1:
@@ -170,17 +128,13 @@ def resolve_verification_method_field_key(
     elif len(type_specific_keys) > 1:
         return (None, "multiple_type_specific")
 
-    # Step 2: No type-specific fields - search whole project
     all_keys = collect_verification_method_field_keys_from_cached_items()
 
     if len(all_keys) == 1:
-        # Use project-wide field with warning (target Set may be empty).
         return (next(iter(all_keys)), "project_wide")
     elif len(all_keys) > 1:
-        # Multiple project-wide fields, no type-specific match - cannot determine.
         return (None, "multiple_project_wide")
 
-    # No verification method fields found in cache.
     if configured_field:
         return (f"{configured_field}${item_type_id}", "env_base_fallback")
 
@@ -188,24 +142,7 @@ def resolve_verification_method_field_key(
 
 
 def normalize_verification_method(value: str) -> Optional[str]:
-    """
-    Normalize verification method from Excel to canonical form.
-
-    Supports letter aliases (T, I, D, A) and case-insensitive full words.
-
-    Args:
-        value: Excel value (e.g., "T", "Test", "test", " Test ")
-
-    Returns:
-        Canonical English value (e.g., "Test") or None if not recognized
-
-    Examples:
-        normalize_verification_method("T") → "Test"
-        normalize_verification_method("test") → "Test"
-        normalize_verification_method("I") → "Inspection"
-        normalize_verification_method("D") → "Demonstration"
-        normalize_verification_method("A") → "Analysis"
-    """
+    """Normalize verification method from Excel (T/I/D/A or names) to canonical form."""
     if not value or not isinstance(value, str):
         return None
 
@@ -225,21 +162,7 @@ def normalize_verification_method(value: str) -> Optional[str]:
 
 
 def get_verification_method_picklist_id(value: str) -> Optional[int]:
-    """
-    Convert canonical English verification method to Jama picklist option ID.
-
-    Args:
-        value: Canonical English value (e.g., "Test")
-
-    Returns:
-        Jama picklist option ID or None if not found
-
-    Examples:
-        get_verification_method_picklist_id("Test") → 422
-        get_verification_method_picklist_id("Inspection") → 420
-        get_verification_method_picklist_id("Demonstration") → 419
-        get_verification_method_picklist_id("Analysis") → 418
-    """
+    """Convert canonical verification method to Jama picklist option ID."""
     if not value:
         return None
 
@@ -247,21 +170,7 @@ def get_verification_method_picklist_id(value: str) -> Optional[int]:
 
 
 def format_verification_method_value(picklist_id: int) -> list:
-    """
-    Format verification method for Jama API payload.
-
-    Verification Method uses a list of picklist option IDs, e.g. [422].
-
-    Args:
-        picklist_id: Picklist option ID (e.g., 422)
-
-    Returns:
-        Array containing the picklist ID
-
-    Examples:
-        format_verification_method_value(422) → [422]
-        format_verification_method_value(420) → [420]
-    """
+    """Format verification method as list for Jama API."""
     return [int(picklist_id)]
 
 
@@ -324,23 +233,31 @@ def load_configuration():
 
     config["EXCEL_FILE"] = os.getenv("INPUT_FILE", "requirements_import.xlsx")
 
-    # Subsystem is modeled as a Set item type in this project.
-    # It intentionally maps to JAMA_ITEM_TYPE_SET.
-    try:
-        config["ITEM_TYPE_IDS"] = {
-            "Set": int(os.getenv("JAMA_ITEM_TYPE_SET", "31")),
-            "Folder": int(os.getenv("JAMA_ITEM_TYPE_FOLDER", "32")),
-            "Text": int(os.getenv("JAMA_ITEM_TYPE_TEXT", "33")),
-            "Text Document": int(os.getenv("JAMA_ITEM_TYPE_TEXT", "33")),  # Alias for Text
-            "Segment": int(os.getenv("JAMA_ITEM_TYPE_SEGMENT", "243")),
-            "Subsystem": int(os.getenv("JAMA_ITEM_TYPE_SET", "31")),  # Subsystem uses Set item type
-            "Stakeholder Requirement": int(os.getenv("JAMA_ITEM_TYPE_STAKEHOLDER_REQUIREMENT", "97")),
-            "Subsystem Requirement": int(os.getenv("JAMA_ITEM_TYPE_SUBSYSTEM_REQUIREMENT", "87")),
-            "Software Requirement": int(os.getenv("JAMA_ITEM_TYPE_SOFTWARE_REQUIREMENT", "112")),
-        }
-    except ValueError as e:
-        print(f"[ERROR] Item type IDs must be integers: {e}")
-        sys.exit(1)
+    config["ITEM_TYPE_IDS"] = {
+        "Set": get_required_int_env("JAMA_ITEM_TYPE_SET", "Set/container item type ID"),
+        "Folder": get_required_int_env("JAMA_ITEM_TYPE_FOLDER", "Folder item type ID"),
+        "Text": get_required_int_env("JAMA_ITEM_TYPE_TEXT", "Text item type ID"),
+        "Text Document": get_required_int_env("JAMA_ITEM_TYPE_TEXT", "Text item type ID"),
+        "Stakeholder Requirement": get_required_int_env("JAMA_ITEM_TYPE_STAKEHOLDER_REQUIREMENT", "Stakeholder Requirement item type ID"),
+        "Subsystem Requirement": get_required_int_env("JAMA_ITEM_TYPE_SUBSYSTEM_REQUIREMENT", "Subsystem Requirement item type ID"),
+        "Software Requirement": get_required_int_env("JAMA_ITEM_TYPE_SOFTWARE_REQUIREMENT", "Software Requirement item type ID"),
+    }
+
+    # Optional project-specific item types
+    segment_type_id = os.getenv("JAMA_ITEM_TYPE_SEGMENT", "").strip()
+    if segment_type_id:
+        try:
+            config["ITEM_TYPE_IDS"]["Segment"] = int(segment_type_id)
+            print(f"[INFO] Optional 'Segment' item type enabled with ID: {segment_type_id}")
+        except ValueError:
+            print(f"[WARN] JAMA_ITEM_TYPE_SEGMENT is not a valid integer: {segment_type_id}")
+
+    # Optional Subsystem alias (maps to Set item type)
+    enable_subsystem_alias = os.getenv("ENABLE_SUBSYSTEM_ALIAS", "false").lower() == "true"
+    if enable_subsystem_alias:
+        config["ITEM_TYPE_IDS"]["Subsystem"] = config["ITEM_TYPE_IDS"]["Set"]
+        print(f"[INFO] Subsystem alias enabled (maps to Set item type ID)")
+
 
     # Legacy "System Requirement" mapping
     default_req_type = os.getenv("DEFAULT_REQUIREMENT_ITEM_TYPE_ID", "")
@@ -505,12 +422,7 @@ def load_configuration():
 
 
 def validate_configuration(config: dict):
-    """
-    Validate configuration for unsafe combinations.
-
-    Raises:
-        SystemExit: If configuration is unsafe
-    """
+    """Validate configuration for unsafe combinations that could create duplicates."""
     # Check for unsafe folder creation without lookup
     if config.get("CREATE_MISSING_FOLDERS", False) and not config.get("RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY", True):
         print("\n" + "=" * 80)
@@ -682,33 +594,14 @@ IMPORT_RESULTS_CSV_FIELDNAMES = [
 # ============================================================
 
 def build_api_url(endpoint: str) -> str:
-    """
-    Construct API URL from base URL and endpoint path.
-    Handles leading/trailing slashes.
-
-    Examples:
-        build_api_url("/items") -> "https://host.com/rest/v1/items"
-        build_api_url("items") -> "https://host.com/rest/v1/items"
-    """
+    """Construct API URL from base URL and endpoint."""
     base = JAMA_BASE_URL.rstrip("/")
     path = endpoint.lstrip("/")
     return f"{base}/{path}"
 
 
 def parse_json_response(response, context: str):
-    """
-    Parse JSON response with detailed error diagnostics.
-
-    Args:
-        response: requests.Response object
-        context: Description of the request (e.g., "OAuth token request", "GET /items")
-
-    Returns:
-        Parsed JSON data
-
-    Raises:
-        RuntimeError: If response is not valid JSON
-    """
+    """Parse JSON response with error diagnostics for authentication issues."""
     content_type = response.headers.get("Content-Type", "")
     text_preview = response.text[:500] if response.text else "(empty response)"
 
@@ -834,20 +727,7 @@ def get_auth():
 
 
 def jama_post(endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    POST to Jama API with payload validation.
-
-    Args:
-        endpoint: API endpoint path
-        payload: Request payload
-
-    Returns:
-        Parsed JSON response
-
-    Raises:
-        ValueError: If payload is missing required fields.name
-        RuntimeError: If POST request fails
-    """
+    """POST to Jama API with payload validation."""
     # Jama requires fields.name in POST payloads.
     fields = payload.get("fields", {})
     if "name" not in fields or not str(fields.get("name", "")).strip():
@@ -957,19 +837,7 @@ _items_by_global_id_duplicates = {}  # globalId -> list of item dicts
 
 
 def build_folder_document_key_cache() -> Dict[str, Dict[str, Any]]:
-    """
-    Fetch all items from the project and build a cache of folders by documentKey.
-
-    Returns:
-        Dict mapping documentKey -> full Jama item dict
-
-    Raises:
-        RuntimeError: If API call fails
-
-    Side effects:
-        Populates global _folder_document_key_duplicates with duplicate documentKeys
-    """
-    # API configuration for fetching items
+    """Fetch all project items and build cache of folders by documentKey."""
     endpoint = ITEMS_ENDPOINT
 
     global _folder_document_key_cache, _folder_document_key_duplicates
@@ -987,7 +855,6 @@ def build_folder_document_key_cache() -> Dict[str, Dict[str, Any]]:
     total_items_fetched = 0
     total_folders_cached = 0
 
-    # Suppress debug output during cache build to avoid excessive logging.
     original_debug_get = CONFIG.get("DEBUG_JAMA_GET", False)
     if original_debug_get:
         print("[DEBUG] Temporarily suppressing GET debug output during cache build...")
@@ -1014,36 +881,27 @@ def build_folder_document_key_cache() -> Dict[str, Dict[str, Any]]:
                 doc_key = item.get("documentKey")
                 item_type = item.get("itemType")
 
-                # Store all items in metadata cache for location tracking.
                 global _item_metadata_by_id, _items_by_document_key, _items_by_global_id, _items_by_global_id_duplicates
                 if item_id:
                     _item_metadata_by_id[item_id] = item
                 if doc_key:
                     _items_by_document_key[doc_key] = item
 
-                # Store by global ID with duplicate detection
                 global_id = item.get("globalId") or item.get("fields", {}).get("globalID") or item.get("fields", {}).get("globalId")
                 if global_id:
                     global_id_str = str(global_id).strip()
 
-                    # Check for duplicates
                     if global_id_str in _items_by_global_id:
-                        # Duplicate found
                         if global_id_str not in _items_by_global_id_duplicates:
-                            # First duplicate - move original to duplicates dict
                             _items_by_global_id_duplicates[global_id_str] = [_items_by_global_id[global_id_str], item]
                             del _items_by_global_id[global_id_str]
                         else:
-                            # Additional duplicate
                             _items_by_global_id_duplicates[global_id_str].append(item)
                     elif global_id_str in _items_by_global_id_duplicates:
-                        # Already marked as duplicate
                         _items_by_global_id_duplicates[global_id_str].append(item)
                     else:
-                        # First occurrence
                         _items_by_global_id[global_id_str] = item
 
-                # Build folder cache.
                 if (item_type == folder_type_id and
                     item.get("project") == JAMA_PROJECT_ID and
                     doc_key):
@@ -1092,20 +950,7 @@ def build_folder_document_key_cache() -> Dict[str, Dict[str, Any]]:
 
 
 def find_existing_folder_by_document_key(document_key: str) -> Optional[Dict[str, Any]]:
-    """
-    Find existing folder in Jama by documentKey.
-
-    Uses cached lookup if USE_FOLDER_DOCUMENT_KEY_CACHE=true (default),
-    otherwise falls back to per-folder API lookup.
-
-    Returns:
-        Full item dict if exactly one matching folder found, None otherwise.
-        Item dict includes: id, documentKey, globalId, itemType, project, childItemType, location, fields
-
-    Raises:
-        RuntimeError: If API call fails
-        ValueError: If multiple matching folders found
-    """
+    """Find existing folder in Jama by documentKey using cache or API lookup."""
     if not document_key:
         return None
 
@@ -1116,15 +961,7 @@ def find_existing_folder_by_document_key(document_key: str) -> Optional[Dict[str
 
 
 def _find_folder_by_cache(document_key: str) -> Optional[Dict[str, Any]]:
-    """
-    Find folder using cached documentKey lookup.
-
-    Returns:
-        Full item dict if exactly one match found, None otherwise
-
-    Raises:
-        ValueError: If multiple matching folders found
-    """
+    """Find folder using cached documentKey lookup."""
     global _folder_document_key_cache, _folder_document_key_duplicates
 
     if _folder_document_key_cache is None:
@@ -1141,16 +978,7 @@ def _find_folder_by_cache(document_key: str) -> Optional[Dict[str, Any]]:
 
 
 def _find_folder_by_api_lookup(document_key: str) -> Optional[Dict[str, Any]]:
-    """
-    Find folder using per-folder API lookup (fallback method).
-
-    Returns:
-        Full item dict if exactly one match found, None otherwise
-
-    Raises:
-        RuntimeError: If API call fails
-        ValueError: If multiple matching folders found
-    """
+    """Find folder using per-folder API lookup as fallback."""
     try:
         # API configuration for folder lookup
         endpoint = ITEMS_ENDPOINT
@@ -1211,26 +1039,12 @@ def _find_folder_by_api_lookup(document_key: str) -> Optional[Dict[str, Any]]:
 
 
 def get_item_metadata(item_id: int) -> Optional[Dict[str, Any]]:
-    """
-    Get metadata for a resolved item from cache.
-
-    Args:
-        item_id: Jama item ID
-
-    Returns:
-        Item metadata dict if available, None otherwise
-    """
+    """Get metadata for a resolved item from cache."""
     return _item_metadata_by_id.get(item_id)
 
 
 def store_item_metadata(item_id: int, item_data: Dict[str, Any]) -> None:
-    """
-    Store item metadata for dynamic childItemType resolution.
-
-    Args:
-        item_id: Jama item ID
-        item_data: Full item dict from Jama API
-    """
+    """Store item metadata for dynamic childItemType resolution."""
     global _item_metadata_by_id, _items_by_document_key, _items_by_global_id
     _item_metadata_by_id[item_id] = item_data
 
@@ -1246,12 +1060,7 @@ def store_item_metadata(item_id: int, item_data: Dict[str, Any]) -> None:
 
 
 def find_existing_item_by_document_key(document_key: str) -> Optional[Dict[str, Any]]:
-    """
-    Find any existing item (not just folders) by documentKey.
-
-    Returns:
-        Item dict if found, None otherwise
-    """
+    """Find any existing item by documentKey from cache."""
     if not document_key:
         return None
 
@@ -1262,20 +1071,7 @@ def find_existing_item_by_document_key(document_key: str) -> Optional[Dict[str, 
 
 
 def extract_global_id_from_value(value: str, warn_if_unparseable: bool = False) -> Optional[str]:
-    """
-    Extract Global ID from Excel value, handling both raw and HYPERLINK formula formats.
-
-    Supports:
-    - Raw: "GID-768902"
-    - HYPERLINK: '=HYPERLINK("...","GID-768902")'
-
-    Args:
-        value: Excel cell value
-        warn_if_unparseable: If True and value is populated but no GID pattern found, print warning
-
-    Returns:
-        Extracted Global ID (e.g., "GID-768902") or None
-    """
+    """Extract Global ID from Excel value (raw or HYPERLINK formula)."""
     if not value or not isinstance(value, str):
         return None
 
@@ -1283,13 +1079,10 @@ def extract_global_id_from_value(value: str, warn_if_unparseable: bool = False) 
     if not value:
         return None
 
-    # Pattern: GID-<digits>
-    import re
     match = GLOBAL_ID_PATTERN.search(value)
     if match:
         return match.group(0)
 
-    # Value was populated but no GID pattern found
     if warn_if_unparseable:
         print(f"[WARN] Global ID value was populated but no GID-#### pattern could be extracted: {value[:100]}")
 
@@ -1297,15 +1090,7 @@ def extract_global_id_from_value(value: str, warn_if_unparseable: bool = False) 
 
 
 def find_existing_item_by_global_id(global_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Find existing item (any type) by Global ID.
-
-    Returns:
-        Item dict if found, None otherwise
-
-    Raises:
-        ValueError: If Global ID matches multiple items
-    """
+    """Find existing item by Global ID. Raises ValueError if multiple matches."""
     if not global_id:
         return None
 
@@ -1314,7 +1099,6 @@ def find_existing_item_by_global_id(global_id: str) -> Optional[Dict[str, Any]]:
 
     global_id_str = str(global_id).strip()
 
-    # Check for duplicates
     global _items_by_global_id_duplicates
     if global_id_str in _items_by_global_id_duplicates:
         duplicate_count = len(_items_by_global_id_duplicates[global_id_str])
@@ -1327,25 +1111,10 @@ def find_existing_item_by_global_id(global_id: str) -> Optional[Dict[str, Any]]:
 
 
 def normalize_for_match(text: str) -> str:
-    """
-    Normalize text for duplicate matching.
-
-    Strips leading/trailing whitespace and collapses internal whitespace.
-
-    Args:
-        text: Text to normalize
-
-    Returns:
-        Normalized text
-
-    Examples:
-        normalize_for_match("  External  Interfaces  ") -> "External Interfaces"
-        normalize_for_match("Test\n\nData") -> "Test Data"
-    """
+    """Normalize text by stripping and collapsing whitespace."""
     if not text:
         return ""
 
-    # Strip whitespace and collapse internal whitespace
     return " ".join(str(text).split())
 
 
@@ -1357,33 +1126,11 @@ def find_existing_item_by_parent_type_name(
 ) -> Optional[Dict[str, Any]]:
     """
     Find existing item by parent ID, item type, and normalized name.
-
-    Used for pre-POST duplicate checking and folder resolution.
-    Searches _item_metadata_by_id cache for matching items.
-
-    Args:
-        parent_item_id: Parent item ID
-        item_type_id: Item type ID to match
-        name: Item name to match (will be normalized)
-        child_item_type: Optional childItemType for folder matching
-
-    Returns:
-        Item dict if exactly one match found, None if no match
-
-    Raises:
-        ValueError: If multiple items match (ambiguous)
-
-    Examples:
-        find_existing_item_by_parent_type_name(12345, 32, "External Interfaces")
-        -> Returns folder dict if exactly one match
-
-        find_existing_item_by_parent_type_name(12345, 32, "Test Folder", child_item_type=112)
-        -> Returns folder dict with matching childItemType if exactly one match
+    Returns single match or None. Raises ValueError if multiple matches.
     """
     if not parent_item_id or not item_type_id or not name:
         return None
 
-    # Build cache if not already built
     if _folder_document_key_cache is None:
         build_folder_document_key_cache()
 
@@ -1395,24 +1142,19 @@ def find_existing_item_by_parent_type_name(
 
     global _item_metadata_by_id
     for item in _item_metadata_by_id.values():
-        # Match parent
         item_parent_id = get_current_parent_id(item)
         if item_parent_id != parent_item_id:
             continue
 
-        # Match item type
         if item.get("itemType") != item_type_id:
             continue
 
-        # Match normalized name
         item_name = item.get("fields", {}).get("name", "")
         if normalize_for_match(item_name) != normalized_name:
             continue
 
-        # For folders, optionally match childItemType if provided
         if child_item_type is not None:
             item_child_type = item.get("childItemType")
-            # Only enforce if both have values
             if item_child_type and child_item_type != item_child_type:
                 continue
 
@@ -1435,17 +1177,7 @@ def find_existing_item_by_parent_type_name(
 
 
 def validate_item_type_match(item: Dict[str, Any], expected_item_type: str, global_id: str) -> None:
-    """
-    Validate that resolved item's type matches expected Excel Item Type.
-
-    Args:
-        item: Resolved Jama item dict
-        expected_item_type: Item Type from Excel row
-        global_id: Global ID used for resolution (for error messages)
-
-    Raises:
-        ValueError: If item types don't match
-    """
+    """Validate that resolved item's type matches expected Excel Item Type."""
     if expected_item_type not in ITEM_TYPE_IDS:
         raise ValueError(f"Unsupported Item Type: {expected_item_type}")
 
@@ -1467,26 +1199,12 @@ def validate_folder_child_item_type_compatibility(
     folder_name: str,
     resolution_method: str
 ) -> None:
-    """
-    Validate folder childItemType compatibility.
-
-    Used by both documentKey and Global ID folder resolution.
-
-    Args:
-        found_folder: Resolved folder item dict
-        expected_child_type: Expected childItemType (from parent/inference/config)
-        folder_name: Folder name for error messages
-        resolution_method: "Global ID" or "documentKey" for logging
-
-    Raises:
-        ValueError: If childItemType is incompatible
-    """
+    """Validate folder childItemType compatibility. Raises ValueError if incompatible."""
     existing_child_type = found_folder.get("childItemType")
     folder_id = found_folder.get("id")
     folder_doc_key = found_folder.get("documentKey", "unknown")
 
     if expected_child_type and existing_child_type and expected_child_type != existing_child_type:
-        # childItemType mismatch - fail clearly
         expected_type_name = next((k for k, v in ITEM_TYPE_IDS.items() if v == expected_child_type), str(expected_child_type))
         existing_type_name = next((k for k, v in ITEM_TYPE_IDS.items() if v == existing_child_type), str(existing_child_type))
 
@@ -1503,15 +1221,7 @@ def validate_folder_child_item_type_compatibility(
 
 
 def get_current_parent_id(item: Dict[str, Any]) -> Optional[int]:
-    """
-    Extract current parent item ID from item metadata.
-
-    Args:
-        item: Full item dict with location info
-
-    Returns:
-        Parent item ID, or None if not available
-    """
+    """Extract current parent item ID from item location metadata."""
     location = item.get("location", {})
     parent_info = location.get("parent", {})
     parent_id = parent_info.get("item")
@@ -1536,13 +1246,7 @@ def get_created_item_id(response: Dict[str, Any]) -> int:
 
 
 def extract_item_metadata(response: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Extract item metadata from Jama API response.
-    Returns dict with: jama_id, document_key, global_id
-
-    Raises:
-        ValueError: If item ID cannot be extracted
-    """
+    """Extract item metadata (ID, documentKey, globalId) from Jama API response."""
     # Try multiple response structures:
     # 1. response["data"]["id"] - typical GET response
     # 2. response["meta"]["id"] - POST/PUT response
@@ -1593,12 +1297,17 @@ REQUIREMENT_ITEM_TYPES = {
     "System Requirement",
 }
 
+# Base structure types - Segment and Subsystem are added dynamically if configured
 STRUCTURE_ITEM_TYPES = {
     "Set",
     "Folder",
-    "Segment",
-    "Subsystem",
 }
+
+# Add optional types if they were configured in .env
+if "Segment" in ITEM_TYPE_IDS:
+    STRUCTURE_ITEM_TYPES.add("Segment")
+if "Subsystem" in ITEM_TYPE_IDS:
+    STRUCTURE_ITEM_TYPES.add("Subsystem")
 
 
 def is_requirement_row(item_type: str) -> bool:
@@ -1691,43 +1400,16 @@ def validate_item_types(df: pd.DataFrame) -> None:
 # ============================================================
 
 def extract_section_number(name: str) -> Optional[str]:
-    """
-    Extract section number from folder name using strict rules to avoid false positives.
-
-    Only matches:
-    - Numbers at the start (after optional classification): "3.2.1 External Interfaces"
-    - Numbers after "Section" keyword: "Section 1.1.1 Signal Processing"
-    - Supports trailing dot for top-level sections: "3." or "3. REQUIREMENTS"
-
-    Does NOT match:
-    - Numbers in middle/end: "UAI / 1553 Interface" -> None
-    - Large numbers (>99): "1553" -> None (likely standards, not sections)
-
-    Examples:
-        "Section 1.0"                         -> "1.0"
-        "Folder Section 1.1"                  -> "1.1"
-        "(U) Section 1.1.1 Signal Processing" -> "1.1.1"
-        "3.2.1 External Interfaces"           -> "3.2.1"
-        "(U) 3.2 Requirements"                -> "3.2"
-        "3. REQUIREMENTS"                     -> "3."
-        "3 REQUIREMENTS"                      -> "3"
-        "(U) Sample Requirements"             -> None
-        "(U) UAI / 1553 Interface"            -> None
-        "MIL-STD-1553 Requirements"           -> None
-    """
+    """Extract section number from folder name (e.g., 'Section 3.1' -> '3.1')."""
     name_str = str(name).strip()
 
-    # Pattern 1: "Section X.Y.Z"
     section_match = re.search(r"\bSection\s+(\d+(?:\.\d+)*\.?)\b", name_str, re.IGNORECASE)
     if section_match:
         return section_match.group(1)
 
-    # Pattern 2: Number at start (after optional classification like "(U)").
-    # Captures: "3 REQUIREMENTS", "3. REQUIREMENTS", "3.0 REQUIREMENTS", "3.1 REQUIRED STATES"
     start_match = re.match(r"^(?:\([A-Z]+\)\s+)?(\d+(?:\.\d+)*\.?)\s+", name_str)
     if start_match:
         section = start_match.group(1)
-        # Only accept if first number < 100 (avoids standards like 1553).
         first_num = int(section.split('.')[0])
         if first_num < 100:
             return section
@@ -1762,15 +1444,7 @@ def normalize_top_level_section(section_number: str) -> str:
 
 
 def get_parent_section_number(section_number: str) -> Optional[str]:
-    """
-    Determine parent section based on section numbering.
-
-    Examples:
-        1.0     -> None
-        1.1     -> 1.0
-        1.1.1   -> 1.1
-        3.2.4   -> 3.2
-    """
+    """Determine parent section from section number (e.g., '3.1.1' -> '3.1')."""
     section_number = normalize_top_level_section(section_number)
     parts = section_number.split(".")
 
@@ -1792,19 +1466,7 @@ def get_parent_section_number(section_number: str) -> Optional[str]:
 # ============================================================
 
 def build_fields(row: pd.Series, item_type_id: int = None) -> Dict[str, Any]:
-    """
-    Build fields dict for Jama API payload.
-
-    Args:
-        row: DataFrame row with item data
-        item_type_id: Optional item type ID for dynamic field key resolution
-
-    Returns:
-        Dict with field API names as keys
-
-    Raises:
-        ValueError: If required Name field is blank
-    """
+    """Build fields dict for Jama API payload from Excel row."""
     item_type = row["Item Type"]
 
     if item_type_id is None:
@@ -1825,7 +1487,7 @@ def build_fields(row: pd.Series, item_type_id: int = None) -> Dict[str, Any]:
         fields[FIELD_MAP["id"]] = row["ID"]
 
     # Only include description if present.
-    # Structure types (Set, Folder, Segment, Subsystem) typically don't have descriptions.
+    # Structure types (Set, Folder, Subsystem) typically don't have descriptions.
     description = row.get("Description", "").strip()
     if description:
         fields[FIELD_MAP["description"]] = description
@@ -1922,21 +1584,7 @@ def build_payload(
     parent_metadata: Optional[Dict[str, Any]] = None,
     inferred_child_type: Optional[int] = None
 ) -> Dict[str, Any]:
-    """
-    Build payload for creating or updating a Jama item.
-
-    Args:
-        row: DataFrame row with item data
-        parent_item_id: Parent Jama item ID
-        sort_order: Sort order under parent
-        is_update: True if updating existing item
-        allow_move: True to include location in update (moves item)
-        parent_metadata: Optional parent item metadata from Jama (includes childItemType)
-        inferred_child_type: Optional inferred childItemType from lookahead (for folders)
-
-    Returns:
-        Payload dict for POST or PUT
-    """
+    """Build payload for creating or updating a Jama item."""
     item_type_name = row["Item Type"]
 
     if item_type_name not in ITEM_TYPE_IDS:
@@ -1974,14 +1622,11 @@ def build_payload(
         }
     }
 
-    # Jama requires childItemType when creating containers (Set, Folder, Segment, Subsystem).
-    # childItemType represents what type of content the container holds, not the container type itself.
-    # Leaf/content items (Requirements, Text) do not have childItemType but still require location.parent.item.
-    # Priority: 1) Inherit from parent, 2) Infer from lookahead, 3) General fallback, 4) Folder-specific fallback
+    # childItemType is content type, not container type.
+    # Text items have parent but no childItemType.
     if item_type_name in ("Set", "Folder"):
-        child_type_source = None  # Track how childItemType was determined
+        child_type_source = None
 
-        # Priority 1: Inherit from parent container (PREFERRED)
         inherited_child_type = None
         if parent_metadata:
             inherited_child_type = parent_metadata.get("childItemType")
@@ -1989,20 +1634,16 @@ def build_payload(
         if inherited_child_type:
             payload["childItemType"] = inherited_child_type
             child_type_source = "parent"
-        # Priority 2: Infer from next requirement row under this folder
         elif inferred_child_type:
             payload["childItemType"] = inferred_child_type
             child_type_source = "inference"
-        # Priority 3: Use general DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE (import-level fallback)
         elif CONFIG.get("DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE"):
             payload["childItemType"] = CONFIG["DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE"]
             child_type_source = "default_requirement"
-        # Priority 4: Use folder-specific JAMA_FOLDER_CHILD_ITEM_TYPE (legacy fallback)
         elif item_type_name in CHILD_ITEM_TYPE_IDS:
             payload["childItemType"] = CHILD_ITEM_TYPE_IDS[item_type_name]
             child_type_source = "fallback_folder"
         else:
-            # Cannot determine childItemType - provide helpful error
             type_examples = []
             for name, type_id in ITEM_TYPE_IDS.items():
                 if name in REQUIREMENT_ITEM_TYPES:
@@ -2026,16 +1667,12 @@ def build_payload(
                 f"  DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE=<type_id>\n"
             )
 
-        # Store the source for logging later
         if child_type_source:
             payload["_child_type_source"] = child_type_source
 
-    # Segment and Subsystem may optionally require childItemType depending on project configuration
-    # Subsystem is an alias of Set, so it uses the same child type rules
     elif item_type_name in ("Segment", "Subsystem"):
-        child_type_source = None  # Track how childItemType was determined
+        child_type_source = None
 
-        # Priority 1: Inherit from parent container (PREFERRED)
         inherited_child_type = None
         if parent_metadata:
             inherited_child_type = parent_metadata.get("childItemType")
@@ -2043,21 +1680,16 @@ def build_payload(
         if inherited_child_type:
             payload["childItemType"] = inherited_child_type
             child_type_source = "parent"
-        # Priority 2: Infer from next requirement row under this container
         elif inferred_child_type:
             payload["childItemType"] = inferred_child_type
             child_type_source = "inference"
-        # Priority 3: Use general DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE (import-level fallback)
         elif CONFIG.get("DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE"):
             payload["childItemType"] = CONFIG["DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE"]
             child_type_source = "default_requirement"
-        # Priority 4: Use container-specific fallback (legacy)
         elif item_type_name in CHILD_ITEM_TYPE_IDS:
             payload["childItemType"] = CHILD_ITEM_TYPE_IDS[item_type_name]
             child_type_source = "fallback_specific"
-        # else: No childItemType determined, will be caught by validation below if required
 
-        # Store the source for logging later
         if child_type_source:
             payload["_child_type_source"] = child_type_source
 
@@ -2065,16 +1697,7 @@ def build_payload(
 
 
 def validate_container_child_item_type(row: pd.Series, payload: Dict[str, Any]) -> None:
-    """
-    Validate that container payloads have childItemType set.
-
-    Args:
-        row: DataFrame row
-        payload: POST payload
-
-    Raises:
-        ValueError: If container is missing childItemType
-    """
+    """Validate that container payloads have childItemType set."""
     item_type_name = row["Item Type"]
     if item_type_name in ("Set", "Folder", "Subsystem"):
         child_type = payload.get("childItemType")
@@ -2111,18 +1734,7 @@ def validate_parent_compatibility(
     parent_item_id: int,
     parent_metadata: Optional[Dict[str, Any]]
 ) -> None:
-    """
-    Validate that new item is compatible with parent container's childItemType.
-
-    Args:
-        row: DataFrame row
-        payload: POST payload
-        parent_item_id: Parent Jama item ID
-        parent_metadata: Parent item metadata from Jama
-
-    Raises:
-        ValueError: If item type incompatible with parent childItemType
-    """
+    """Validate that new item is compatible with parent container's childItemType."""
     if not parent_metadata:
         # No metadata available - cannot validate
         return
@@ -2137,17 +1749,11 @@ def validate_parent_compatibility(
 
     # For non-container rows (requirements and Text), validate compatibility
     if item_type_name not in ("Set", "Folder", "Segment", "Subsystem"):
-        # This is a requirement or Text item (leaf/content node with parent but no childItemType)
-
-        # Skip strict childItemType validation for Text items
-        # Text items need location.parent.item but not parent.childItemType == 33
-        # Let Jama API accept/reject Text placement based on document tree rules
+        # Text items have parent but no childItemType
         if item_type_name in ("Text", "Text Document"):
             print(f"[INFO] Text item: no childItemType, but location.parent.item is required (itemType={new_item_type})")
             return
 
-        # Strict validation for requirement rows only
-        # Requirements must match parent.childItemType exactly
         if new_item_type != parent_child_type:
             parent_doc_key = parent_metadata.get("documentKey", "unknown")
             parent_name = parent_metadata.get("fields", {}).get("name", "unknown")
@@ -2163,7 +1769,6 @@ def validate_parent_compatibility(
                 f"This row is routed to the wrong folder/container."
             )
 
-    # For container rows, validate childItemType matches parent's childItemType
     else:
         new_child_type = payload.get("childItemType")
         if new_child_type and new_child_type != parent_child_type:
@@ -2224,16 +1829,7 @@ def write_import_results_csv(results: list, path: str) -> None:
 # ============================================================
 
 def infer_folder_child_item_type(df: pd.DataFrame, folder_row_pos: int) -> Optional[int]:
-    """
-    Infer the childItemType needed for a folder by looking at the next items that will go under it.
-
-    Args:
-        df: DataFrame with all rows
-        folder_row_pos: Positional index (0-based) of the folder row in the DataFrame
-
-    Returns:
-        Item type ID that should be the childItemType, or None if cannot determine
-    """
+    """Infer childItemType for a folder by examining subsequent requirement items."""
     # Bounds check
     if folder_row_pos < 0 or folder_row_pos >= len(df):
         return None
@@ -2277,13 +1873,7 @@ def infer_folder_child_item_type(df: pd.DataFrame, folder_row_pos: int) -> Optio
 
 
 def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
-    """
-    Import items from Excel to Jama.
-
-    Args:
-        mode: Import mode - "create" or "upsert"
-        dry_run: If True, simulate without making API calls
-    """
+    """Import items from Excel to Jama with folder resolution and hierarchy tracking."""
     df = load_excel(EXCEL_FILE)
 
     print(f"[INFO] Loaded {len(df)} rows from Excel.")
@@ -2420,11 +2010,9 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                 if existing_item_metadata:
                     existing_jama_id = existing_item_metadata.get("id")
 
-            # Get current parent if item exists
             if existing_item_metadata:
                 current_parent_item_id = get_current_parent_id(existing_item_metadata)
 
-            # Determine action based on mode and Jama ID presence
             if mode == "create":
                 if existing_jama_id:
                     raise ValueError(f"Mode is 'create' but Jama ID is populated: {existing_jama_id}. Remove Jama ID for create mode.")
@@ -2445,8 +2033,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
             if existing_jama_id:
                 resolved_by = "jama_id"
 
-            # For Folder rows: simple resolution by documentKey if Jama ID not provided
-            # Priority: A) Jama ID (done above), B) Global ID, C) Document Key column, D) Excel ID as documentKey
             if item_type == "Folder" and not existing_jama_id:
                 found_folder = None
                 resolution_method = None
@@ -2455,7 +2041,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                 print(f"[INFO]   Excel ID: {excel_id}")
                 print(f"[INFO]   Folder Name: {name}")
 
-                # B) Try Global ID lookup (if configured and populated)
                 if CONFIG.get("USE_GLOBAL_ID_LOOKUP", True):
                     global_id_raw = row.get("Global ID", "").strip()
                     global_id_extracted = extract_global_id_from_value(global_id_raw, warn_if_unparseable=True) if global_id_raw else None
@@ -2467,13 +2052,10 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             found_folder = find_existing_item_by_global_id(global_id_extracted)
 
                             if found_folder:
-                                # Validate item type
                                 validate_item_type_match(found_folder, item_type, global_id_extracted)
 
-                                # Determine expected childItemType (reuse logic from documentKey resolution)
                                 expected_child_type = None
 
-                                # Priority 1: Try to inherit from parent
                                 temp_parent_id = None
                                 raw_section_number = extract_section_number(name)
 
@@ -2492,31 +2074,25 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                                 if temp_parent_metadata:
                                     expected_child_type = temp_parent_metadata.get("childItemType")
 
-                                # Priority 2: Infer from items under this folder
                                 if not expected_child_type:
                                     inferred_child_type = infer_folder_child_item_type(df, row_pos)
                                     expected_child_type = inferred_child_type
 
-                                # Priority 3: Use DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE (general fallback)
                                 if not expected_child_type:
                                     expected_child_type = CONFIG.get("DEFAULT_REQUIREMENT_CHILD_ITEM_TYPE")
 
-                                # Priority 4: Use folder-specific fallback
                                 if not expected_child_type:
                                     expected_child_type = CHILD_ITEM_TYPE_IDS.get(item_type)
 
-                                # Validate childItemType compatibility - raises ValueError if incompatible
                                 validate_folder_child_item_type_compatibility(
                                     found_folder, expected_child_type, name, "Global ID"
                                 )
 
-                                # Compatible - resolve to this folder
                                 final_jama_id = found_folder["id"]
                                 existing_jama_id = final_jama_id
                                 action = "RESOLVE"
                                 resolved_by = "global_id"
 
-                                # Capture metadata
                                 if not document_key:
                                     document_key = found_folder.get("documentKey", "")
                                 if not global_id:
@@ -2533,7 +2109,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                         except (RuntimeError, ValueError) as lookup_error:
                             raise lookup_error
 
-                # C) Try explicit Document Key column (if populated)
                 if not found_folder and document_key:
                     print(f"[INFO] Attempting to resolve folder by Document Key column: {document_key}")
                     found_folder = find_existing_folder_by_document_key(document_key)
@@ -2543,7 +2118,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     else:
                         print(f"[INFO] ✗ Not found by Document Key column")
 
-                # C) Try Excel ID as documentKey (default behavior for Folder rows)
                 if not found_folder and CONFIG.get("RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY", True) and CONFIG.get("USE_EXCEL_ID_AS_DOCUMENT_KEY", True):
                     print(f"[INFO] Attempting to resolve folder by documentKey from Excel ID: {excel_id}")
 
@@ -2555,17 +2129,10 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     else:
                         print(f"[INFO] ✗ Not found in Jama by documentKey '{excel_id}'")
 
-                # Process found folder
                 if found_folder and resolution_method != "global_id":
                     try:
-                        # Found a folder with matching documentKey
-                        # Now check if its childItemType is compatible with what we need
-
-                        # Determine expected childItemType
-                        # Priority: 1) Inherit from parent, 2) Infer from contents, 3) Default from config
                         expected_child_type = None
 
-                        # Priority 1: Try to inherit from parent
                         temp_parent_id = None
                         raw_section_number = extract_section_number(name)
 
@@ -2602,7 +2169,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             found_folder, expected_child_type, name, "documentKey"
                         )
 
-                        # childItemType compatible or not specified - resolve the folder
                         final_jama_id = found_folder["id"]
                         existing_jama_id = final_jama_id
                         action = "RESOLVE"
@@ -2621,16 +2187,12 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             print(f"[INFO] Existing folder childItemType: {existing_child_type} matches expected: {expected_child_type} (compatible)")
                         print(f"[INFO] Registered as current parent. No folder will be created.")
 
-                        # Store metadata for resolved folder
                         store_item_metadata(final_jama_id, found_folder)
 
                     except (RuntimeError, ValueError) as lookup_error:
-                        # Re-raise lookup errors so the row fails with the detailed error message
                         raise lookup_error
 
-                # E) Try parent+itemType+name matching (pre-POST duplicate prevention)
                 if not found_folder and CONFIG.get("ENABLE_PRE_POST_DUPLICATE_CHECK", True):
-                    # Determine parent and expected childItemType for matching
                     temp_parent_id = None
                     raw_section_number = extract_section_number(name)
 
@@ -2648,7 +2210,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     if temp_parent_id:
                         print(f"[INFO] Attempting to resolve folder by parent+itemType+name matching: parent={temp_parent_id}, name='{name}'")
 
-                        # Determine expected childItemType for matching
                         expected_child_type = None
                         temp_parent_metadata = get_item_metadata(temp_parent_id) if temp_parent_id else None
                         if temp_parent_metadata:
@@ -2675,17 +2236,12 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             else:
                                 print(f"[INFO] ✗ Not found by parent+itemType+name matching")
                         except ValueError as e:
-                            # Multiple matches - fail the row
                             raise e
 
-                # Process found folder (parent_type_name match)
                 if found_folder and resolution_method == "parent_type_name":
                     try:
-                        # Found a folder with matching parent+type+name
-                        # Validate childItemType compatibility
                         expected_child_type = None
 
-                        # Priority 1: Try to inherit from parent
                         temp_parent_id = None
                         raw_section_number = extract_section_number(name)
 
@@ -2722,7 +2278,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             found_folder, expected_child_type, name, "parent+itemType+name"
                         )
 
-                        # childItemType compatible or not specified - resolve the folder
                         final_jama_id = found_folder["id"]
                         existing_jama_id = final_jama_id
                         action = "RESOLVE"
@@ -2740,11 +2295,9 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             print(f"[INFO] Existing folder childItemType: {existing_child_type} matches expected: {expected_child_type} (compatible)")
                         print(f"[INFO] Registered as current parent. No folder will be created.")
 
-                        # Store metadata for resolved folder
                         store_item_metadata(final_jama_id, found_folder)
 
                     except (RuntimeError, ValueError) as lookup_error:
-                        # Re-raise lookup errors so the row fails with the detailed error message
                         raise lookup_error
 
                 elif not CONFIG.get("CREATE_MISSING_FOLDERS", False):
@@ -2759,7 +2312,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                         f"  3. Or set CREATE_MISSING_FOLDERS=true to create new folders"
                     )
                 else:
-                    # CREATE_MISSING_FOLDERS=true, will create the folder
                     print(f"[INFO] Folder documentKey '{excel_id}' was not found in Jama after lookup.")
                     print(f"[INFO] CREATE_MISSING_FOLDERS=true, so a new folder will be created.")
                     if not dry_run:
@@ -2784,35 +2336,27 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
 
                         parent_item_id = folder_by_section[parent_section_number]
                     else:
-                        # Top-level section (no parent section number)
-                        # Always use ROOT_PARENT_ITEM_ID for top-level sections
                         parent_item_id = ROOT_PARENT_ITEM_ID
 
                 else:
                     parent_item_id = current_folder_item_id
 
             else:
-                # Requirement row
                 parent_item_id = current_folder_item_id
 
             sort_order = sort_order_by_parent.get(parent_item_id, 0)
 
-            # Get parent metadata for dynamic childItemType resolution
             parent_metadata = get_item_metadata(parent_item_id)
 
-            # Check if existing item needs to be moved to different parent
             needs_move = False
             if existing_jama_id and current_parent_item_id is not None and current_parent_item_id != parent_item_id:
                 needs_move = True
                 if action == "SKIP":
-                    # Change action from SKIP to MOVE if move is allowed
                     if allow_move:
                         action = "MOVE"
                     else:
-                        # Keep as SKIP but record that move is needed
                         action = "SKIP_NEEDS_MOVE"
 
-            # Infer childItemType for folder/container creation by looking ahead
             inferred_child_type = None
             if action == "CREATE" and item_type in ("Set", "Folder", "Segment", "Subsystem"):
                 inferred_child_type = infer_folder_child_item_type(df, row_pos)
@@ -2820,7 +2364,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     inferred_type_name = next((k for k, v in ITEM_TYPE_IDS.items() if v == inferred_child_type), str(inferred_child_type))
                     print(f"[INFO] Inferred childItemType for new {item_type}: {inferred_child_type} ({inferred_type_name})")
 
-            # Build payload (only for CREATE actions, not for RESOLVE or SKIP)
             payload = None
             if action == "CREATE":
                 payload = build_payload(
@@ -2836,7 +2379,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
             print("\n" + "=" * 80)
             print(f"[ROW {excel_row_number}] {action} {item_type}: {name}")
 
-            # Log how childItemType was determined for containers
             if action == "CREATE" and payload and item_type in ("Set", "Folder", "Segment", "Subsystem"):
                 child_type_source = payload.get("_child_type_source")
                 child_type_value = payload.get("childItemType")
@@ -2852,7 +2394,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                         print(f"[INFO] Folder childItemType using JAMA_FOLDER_CHILD_ITEM_TYPE fallback: {child_type_value}")
                     elif child_type_source == "fallback_specific":
                         print(f"[INFO] Folder childItemType using container-specific fallback: {child_type_value}")
-                # Remove internal tracking field before sending to API
                 if "_child_type_source" in payload:
                     del payload["_child_type_source"]
             if existing_jama_id:
@@ -2861,11 +2402,9 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                 else:
                     print(f"[INFO] Existing Jama ID: {existing_jama_id}")
 
-            # Show Text item detection
             if item_type in ("Text", "Text Document"):
                 print(f"[INFO] Detected Text item from Excel Item Type column")
 
-            # Show verification method if present (extract from payload fields)
             if action == "CREATE" and payload and item_type in REQUIREMENT_ITEM_TYPES:
                 payload_fields = payload.get("fields", {})
                 if "_verification_method_canonical" in payload_fields:
@@ -2877,17 +2416,14 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
 
                     print(f"[INFO] Verification Method: {excel_value} -> {canonical_value} -> {picklist_id}")
 
-                    # Show how field key was resolved
                     if resolution_source == "env_explicit":
                         print(f"[INFO] Verification field key from .env (explicit): {resolved_key}")
                     elif resolution_source == "type_specific":
-                        # Show dynamic resolution from same item type
                         type_specific_keys = collect_verification_method_field_keys_from_cached_items(item_type_id)
                         candidates_str = ", ".join(sorted(type_specific_keys))
                         print(f"[INFO] Verification field key candidates for itemType={item_type_id}: {candidates_str}")
                         print(f"[INFO] Verification field key resolved dynamically (type-specific): {resolved_key}")
                     elif resolution_source == "project_wide":
-                        # Show dynamic resolution from project-wide search with warning
                         all_keys = collect_verification_method_field_keys_from_cached_items()
                         candidates_str = ", ".join(sorted(all_keys))
                         print(f"[WARN] No same-itemType verification field found for itemType={item_type_id}")
@@ -2897,18 +2433,15 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                         print(f"[WARN] No cached verification fields found, using .env base name with item type suffix")
                         print(f"[INFO] Verification field key: {resolved_key}")
                     else:
-                        # Other sources
                         print(f"[INFO] Verification field key resolved ({resolution_source}): {resolved_key}")
 
                     print(f"[INFO] Verification payload value: [{picklist_id}]")
 
-                    # Remove internal tracking fields before API call
                     payload_fields.pop("_verification_method_canonical", None)
                     payload_fields.pop("_verification_method_picklist_id", None)
                     payload_fields.pop("_verification_method_resolved_key", None)
                     payload_fields.pop("_verification_method_source", None)
 
-            # Print parent metadata for diagnostics
             print(f"[INFO] Parent item ID: {parent_item_id}")
             if parent_metadata:
                 parent_doc_key = parent_metadata.get("documentKey", "unknown")
@@ -2927,32 +2460,25 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
             if parent_section_number:
                 print(f"[INFO] Parent section number: {parent_section_number}")
 
-            # Dry run or execute
             if dry_run:
                 if action == "CREATE":
-                    # Validate container has childItemType
                     if item_type in ("Set", "Folder", "Subsystem"):
                         validate_container_child_item_type(row, payload)
 
-                    # Validate compatibility with parent
                     validate_parent_compatibility(row, payload, parent_item_id, parent_metadata)
 
-                    # Show field keys for validation
                     fields = payload.get("fields", {})
                     print(f"[DEBUG] POST fields keys: {list(fields.keys())}")
 
-                    # Warn if 'name' field is missing
                     if "name" not in fields:
                         print("[WARN] POST fields does not contain literal 'name'. Jama requires fields.name.")
 
-                    # Show itemType and childItemType
                     new_item_type = payload.get("itemType")
                     new_child_type = payload.get("childItemType")
                     print(f"[INFO] New itemType: {new_item_type}")
                     if new_child_type:
                         print(f"[INFO] New childItemType: {new_child_type} (new container will accept this content type)")
 
-                    # Show compatibility for requirements
                     if item_type not in ("Set", "Folder", "Segment", "Subsystem") and parent_metadata:
                         parent_child_type = parent_metadata.get("childItemType")
                         if parent_child_type:
@@ -2995,7 +2521,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     move_method = CONFIG.get("MOVE_METHOD", "PATCH")
                     print(f"[DRY RUN] Would MOVE item {existing_jama_id} to parent {parent_item_id} using {move_method}")
 
-                    # Show what the move payload would look like
                     move_payload = {
                         "location": {
                             "parent": {
@@ -3009,21 +2534,17 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     final_jama_id = existing_jama_id
             else:
                 if action == "CREATE":
-                    # Validate container has childItemType
                     if item_type in ("Set", "Folder", "Subsystem"):
                         validate_container_child_item_type(row, payload)
 
-                    # Validate compatibility with parent
                     validate_parent_compatibility(row, payload, parent_item_id, parent_metadata)
 
-                    # Show itemType and childItemType
                     new_item_type = payload.get("itemType")
                     new_child_type = payload.get("childItemType")
                     print(f"[INFO] New itemType: {new_item_type}")
                     if new_child_type:
                         print(f"[INFO] New childItemType: {new_child_type}")
 
-                    # PRE-POST DUPLICATE CHECK: Check for existing item by parent+itemType+name
                     if CONFIG.get("ENABLE_PRE_POST_DUPLICATE_CHECK", True):
                         print(f"[INFO] Pre-POST duplicate check: parent={parent_item_id}, itemType={new_item_type}, name='{name}'")
                         try:
@@ -3043,9 +2564,7 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                                 print(f"[WARN] Pre-POST duplicate check found existing item: Jama ID {duplicate_id}")
                                 print(f"[WARN] Skipping POST to prevent duplicate creation")
 
-                                # Update action and metadata
                                 if item_type in ("Set", "Folder", "Segment", "Subsystem"):
-                                    # For folders: change to RESOLVE and register as parent
                                     action = "RESOLVE"
                                     final_jama_id = duplicate_id
                                     resolved_by = "parent_type_name_match"
@@ -3056,12 +2575,10 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                                     if not global_id:
                                         global_id = duplicate_global_id
 
-                                    # Store and register
                                     store_item_metadata(duplicate_id, duplicate_item)
                                     print(f"[OK] Resolved existing {item_type} by parent+itemType+name -> Jama ID {duplicate_id}")
                                     print(f"[OK] Registered as current parent. No item created.")
                                 else:
-                                    # For requirements/Text: change to SKIP_EXISTING
                                     action = "SKIP_EXISTING"
                                     final_jama_id = duplicate_id
                                     resolved_by = "parent_type_name_match"
@@ -3076,11 +2593,9 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                                     print(f"[SKIP] No item created.")
 
                         except ValueError as e:
-                            # Multiple matches - fail the row
                             print(f"[ERROR] Pre-POST duplicate check failed: {e}")
                             raise e
 
-                    # Only POST if action is still CREATE after duplicate check
                     if action == "CREATE":
                         response = jama_post(CREATE_ITEM_ENDPOINT, payload)
                         metadata = extract_item_metadata(response)
@@ -3089,9 +2604,7 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                         document_key = metadata["document_key"]
                         global_id = metadata["global_id"]
 
-                        # Store metadata for newly created containers
                         if item_type in ("Set", "Folder", "Segment", "Subsystem"):
-                            # Store basic metadata for the newly created container
                             new_item_metadata = {
                                 "id": final_jama_id,
                                 "documentKey": document_key,
@@ -3107,10 +2620,8 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                             print(f"[OK] Created new {item_type} with Jama ID: {final_jama_id}, documentKey: {document_key}")
                         else:
                             print(f"[OK] Created {item_type} with Jama ID: {final_jama_id}")
-                        # Small delay to avoid hammering the API
                         time.sleep(API_CALL_DELAY_SECONDS)
                 elif action == "RESOLVE":
-                    # Existing item resolved - register as parent only, no update performed
                     final_jama_id = existing_jama_id
                     print(f"[OK] Resolved folder by documentKey {excel_id} -> Jama ID {final_jama_id}")
                     print(f"[OK] Registered as current parent. No folder created.")
@@ -3125,7 +2636,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     print(f"[WARN] Item is under parent {current_parent_item_id}, but should be under {parent_item_id}")
                     print(f"[WARN] Enable --allow-move to move this item to the correct parent")
                 elif action == "MOVE":
-                    # Validate compatibility with target parent before move
                     new_item_type = ITEM_TYPE_IDS.get(item_type)
                     if new_item_type and parent_metadata:
                         parent_child_type = parent_metadata.get("childItemType")
@@ -3150,19 +2660,16 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     move_method = CONFIG.get("MOVE_METHOD", "PATCH")
                     if move_method == "PATCH":
                         response = jama_patch(existing_jama_id, move_payload)
-                    else:  # PUT
-                        # For PUT, need to include all required fields
+                    else:
                         if not existing_item_metadata:
                             raise RuntimeError(f"Cannot use PUT without existing item metadata for item {existing_jama_id}")
 
-                        # Build full PUT payload
                         put_payload = {
                             "fields": existing_item_metadata.get("fields", {}),
                             "itemType": existing_item_metadata.get("itemType"),
                             "location": move_payload["location"]
                         }
 
-                        # Include childItemType if present
                         if existing_item_metadata.get("childItemType"):
                             put_payload["childItemType"] = existing_item_metadata.get("childItemType")
 
@@ -3173,20 +2680,16 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                     print(f"[OK] Moved item {existing_jama_id} from parent {current_parent_item_id} to {parent_item_id} using {move_method}")
                     time.sleep(API_CALL_DELAY_SECONDS)
 
-            # Increment sibling sort order for this parent
             sort_order_by_parent[parent_item_id] = sort_order + 1
 
-            # Register containers in hierarchy
             if item_type in ("Set", "Folder", "Segment", "Subsystem"):
                 if section_number and final_jama_id:
                     folder_by_section[section_number] = final_jama_id
 
-                # Folder rows establish the active parent for subsequent requirement rows.
-                # This applies whether the folder was newly created or resolved from existing Jama.
+                # Folder rows establish active parent
                 if final_jama_id:
                     current_folder_item_id = final_jama_id
 
-            # Determine resolved_by for results
             if not resolved_by or resolved_by == "none":
                 if action == "CREATE":
                     resolved_by = "dry_run_fake_create" if dry_run else "created"
@@ -3195,7 +2698,6 @@ def import_excel(mode: str = "upsert", dry_run: bool = True) -> None:
                 elif action in ("SKIP", "SKIP_NEEDS_MOVE", "MOVE"):
                     resolved_by = "jama_id"
 
-            # Determine status
             if dry_run:
                 if action == "CREATE":
                     status = "DRY_RUN_OK"

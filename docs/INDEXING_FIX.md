@@ -3,8 +3,8 @@
 ## Issue
 Dry-run failures at end of file:
 ```
-Row 277 | EGL_CV-FLD | Folder | 3.4.1.2 VMC Internal Interface | single positional indexer is out-of-bounds
-Row 281 | EGL_CV-FLD | Folder | 3.4.1.3 Navigation & IMU Internal Interface | single positional indexer is out-of-bounds
+Row 277 | PROJ-FLD | Folder | 3.4.1.2 Component Internal Interface | single positional indexer is out-of-bounds
+Row 281 | PROJ-FLD | Folder | 3.4.1.3 Navigation Internal Interface | single positional indexer is out-of-bounds
 ```
 
 ## Root Cause

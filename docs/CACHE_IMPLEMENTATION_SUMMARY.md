@@ -45,7 +45,7 @@ find_existing_folder_by_document_key(doc_key)
    - Default page size: 100 (configurable via `JAMA_ITEMS_PAGE_SIZE`)
 5. Filter each item:
    - `item["itemType"] == ITEM_TYPE_IDS["Folder"]` (32)
-   - `item["project"] == JAMA_PROJECT_ID` (279)
+   - `item["project"] == JAMA_PROJECT_ID`
    - `item["documentKey"]` is non-empty
 6. Store in cache or duplicates dict:
    - First occurrence: `cache[documentKey] = item`
@@ -220,8 +220,8 @@ _folder_document_key_duplicates = {}        # Duplicate tracking
 
 **No change:**
 ```
-[INFO] Attempting to resolve folder by documentKey: EGL_CV-FLD-220
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-220' -> Jama ID 1175461
+[INFO] Attempting to resolve folder by documentKey: PROJ-FLD-220
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-220' -> Jama ID 999999
 ```
 
 ## Configuration Scenarios
@@ -291,7 +291,7 @@ python3 csv2jama.py --mode upsert --dry-run
 
 **Expected output:**
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 [INFO] Fetched {N} total items from project.
 [INFO] Cached {M} folders by documentKey.
 ```

@@ -165,8 +165,8 @@ Options:
 
 ```csv
 Jama ID,ID,Item Type,Name,Description
-,EGL_CV-FLD-211,Folder,(U) Launch Requirements,
-,EGL_CV-SS-001,Subsystem Requirement,Launch Modes,The subsystem shall support...
+,PROJ-FLD-211,Folder,(U) Launch Requirements,
+,PROJ-SS-001,Subsystem Requirement,Launch Modes,The subsystem shall support...
 ```
 
 ## Troubleshooting

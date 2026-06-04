@@ -67,9 +67,9 @@ No API call made (no POST, no PUT)
 
 **Output:**
 ```
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-211' -> Jama ID 1175461
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-211' -> Jama ID 999999
 [INFO] Existing folder will be registered as parent container. No update will be performed.
-[OK] Resolved existing Folder by document_key -> Jama ID 1175461
+[OK] Resolved existing Folder by document_key -> Jama ID 999999
 [OK] Existing item registered as parent container. No update performed.
 ```
 
@@ -90,7 +90,7 @@ No API call made
 
 **Output:**
 ```
-[SKIP] Existing Stakeholder Requirement has Jama ID 123456
+[SKIP] Existing Stakeholder Requirement has Jama ID 888888
 [SKIP] Update is not supported because PUT is not available in this workflow.
 ```
 
@@ -101,7 +101,7 @@ No API call made
 **Spreadsheet:**
 ```
 ID              | Item Type | Name                    | Jama ID
-EGL_CV-FLD-220  | Folder    | UAI Interface Reqs      | (blank)
+PROJ-FLD-220  | Folder    | UAI Interface Reqs      | (blank)
 ```
 
 **Cache lookup:** Not found
@@ -118,17 +118,17 @@ Register new Jama ID as parent
 **Spreadsheet:**
 ```
 ID              | Item Type | Name                    | Jama ID
-EGL_CV-FLD-211  | Folder    | Launch Requirements     | (blank)
+PROJ-FLD-211  | Folder    | Launch Requirements     | (blank)
 ```
 
-**Cache lookup:** Found Jama ID 1175461
+**Cache lookup:** Found Jama ID 999999
 
 **Mode: upsert**
 ```
 action = RESOLVE
 status = RESOLVED_PARENT
 No POST, no PUT
-Register 1175461 as parent
+Register 999999 as parent
 ```
 
 ### Scenario 3: Existing Folder with Jama ID Provided
@@ -136,7 +136,7 @@ Register 1175461 as parent
 **Spreadsheet:**
 ```
 ID              | Item Type | Name                    | Jama ID
-EGL_CV-FLD-211  | Folder    | Launch Requirements     | 1175461
+PROJ-FLD-211  | Folder    | Launch Requirements     | 999999
 ```
 
 **Mode: upsert**
@@ -144,7 +144,7 @@ EGL_CV-FLD-211  | Folder    | Launch Requirements     | 1175461
 action = RESOLVE
 status = RESOLVED_PARENT
 No POST, no PUT
-Register 1175461 as parent
+Register 999999 as parent
 ```
 
 ### Scenario 4: New Requirement Without Jama ID
@@ -152,7 +152,7 @@ Register 1175461 as parent
 **Spreadsheet:**
 ```
 ID              | Item Type                  | Name                | Jama ID
-EGL_CV-SR-001   | Stakeholder Requirement    | System shall...     | (blank)
+PROJ-SR-001   | Stakeholder Requirement    | System shall...     | (blank)
 ```
 
 **Mode: upsert**
@@ -167,7 +167,7 @@ Parent = current resolved folder
 **Spreadsheet:**
 ```
 ID              | Item Type                  | Name                | Jama ID
-EGL_CV-SR-001   | Stakeholder Requirement    | System shall...     | 123456
+PROJ-SR-001   | Stakeholder Requirement    | System shall...     | 888888
 ```
 
 **Mode: upsert**
@@ -199,9 +199,9 @@ Item not modified
 
 ```csv
 excel_row,action,status,jama_id,document_key,source_id,item_type,name,resolved_by,created_item_id,updated_item_id,error
-2,RESOLVE,RESOLVED_PARENT,1175461,EGL_CV-FLD-211,EGL_CV-FLD-211,Folder,Launch Requirements,document_key,,,
-3,CREATE,CREATED,1234567,EGL_CV-SR-001,EGL_CV-SR-001,Stakeholder Requirement,System shall support...,created,1234567,,
-4,SKIP,SKIPPED_UPDATE_UNSUPPORTED,123456,EGL_CV-SR-002,EGL_CV-SR-002,Stakeholder Requirement,System shall provide...,jama_id,,,Existing item update not supported (PUT unavailable)
+2,RESOLVE,RESOLVED_PARENT,999999,PROJ-FLD-211,PROJ-FLD-211,Folder,Launch Requirements,document_key,,,
+3,CREATE,CREATED,8888887,PROJ-SR-001,PROJ-SR-001,Stakeholder Requirement,System shall support...,created,8888887,,
+4,SKIP,SKIPPED_UPDATE_UNSUPPORTED,888888,PROJ-SR-002,PROJ-SR-002,Stakeholder Requirement,System shall provide...,jama_id,,,Existing item update not supported (PUT unavailable)
 ```
 
 ## Import Summary Output
@@ -319,7 +319,7 @@ if item_type in ("Set", "Folder", "Segment", "Subsystem"):
 
 ```
 [ERROR] Row 5 failed.
-[ERROR] Mode is 'create' but Jama ID is populated: 123456. Remove Jama ID for create mode.
+[ERROR] Mode is 'create' but Jama ID is populated: 888888. Remove Jama ID for create mode.
 ```
 
 **Status:** `FAILED`
@@ -329,7 +329,7 @@ if item_type in ("Set", "Folder", "Segment", "Subsystem"):
 **Not an error** - row is skipped:
 
 ```
-[SKIP] Existing Stakeholder Requirement has Jama ID 123456
+[SKIP] Existing Stakeholder Requirement has Jama ID 888888
 [SKIP] Update is not supported because PUT is not available in this workflow.
 ```
 
@@ -340,7 +340,7 @@ if item_type in ("Set", "Folder", "Segment", "Subsystem"):
 **Not an error** - folder is resolved:
 
 ```
-[OK] Resolved existing Folder by jama_id -> Jama ID 1175461
+[OK] Resolved existing Folder by jama_id -> Jama ID 999999
 [OK] Existing item registered as parent container. No update performed.
 ```
 
@@ -393,14 +393,14 @@ IMPORT_MODE=upsert  # Resolves existing, creates new, skips existing requirement
 **If spreadsheet has:**
 ```
 ID              | Item Type                  | Name                | Description (updated) | Jama ID
-EGL_CV-SR-001   | Stakeholder Requirement    | System shall...     | New description       | 123456
+PROJ-SR-001   | Stakeholder Requirement    | System shall...     | New description       | 888888
 ```
 
 **Result:**
 ```
 action = SKIP
 status = SKIPPED_UPDATE_UNSUPPORTED
-Jama item 123456 NOT updated with new description
+Jama item 888888 NOT updated with new description
 ```
 
 **Workaround:** Remove Jama ID from spreadsheet to create a duplicate (not recommended).

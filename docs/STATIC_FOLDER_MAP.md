@@ -7,7 +7,7 @@ The static folder source ID map provides path-based resolution for folders when 
 ## Problem It Solves
 
 **Without the map:**
-- Excel ID column contains fabricated IDs (e.g., `EGL_CV-FLD-281`)
+- Excel ID column contains fabricated IDs (e.g., `PROJ-FLD-281`)
 - These are NOT Jama documentKeys
 - Script cannot resolve which existing folder to use
 - Risk of creating duplicate folders
@@ -33,8 +33,8 @@ In `csv2jama.py`, the map is defined as:
 
 ```python
 FOLDER_SOURCE_ID_TO_PARENT_PATH = {
-    "EGL_CV-FLD-281": "EAGLET Subsystem Requirements",
-    "EGL_CV-FLD-282": "EAGLET Subsystem Requirements/DFCS SRS",
+    "PROJ-FLD-281": "Project Subsystem Requirements",
+    "PROJ-FLD-282": "Project Subsystem Requirements/Component SRS",
     # ...
 }
 ```
@@ -74,19 +74,19 @@ For each Folder row, the script tries in order:
 
 **Excel row:**
 ```
-ID: EGL_CV-FLD-281
+ID: PROJ-FLD-281
 Item Type: Folder
 Name: (U) Launch Requirements
 ```
 
 **Map entry:**
 ```python
-"EGL_CV-FLD-281": "EAGLET Subsystem Requirements"
+"PROJ-FLD-281": "Project Subsystem Requirements"
 ```
 
 **Resolution process:**
-1. Parent path: `"EAGLET Subsystem Requirements"`
-2. Walk from ROOT_PARENT_ITEM_ID → find "EAGLET Subsystem Requirements"
+1. Parent path: `"Project Subsystem Requirements"`
+2. Walk from ROOT_PARENT_ITEM_ID → find "Project Subsystem Requirements"
 3. Under that folder, find exact child named "(U) Launch Requirements"
 4. Resolve that folder as parent for subsequent requirements
 
@@ -94,7 +94,7 @@ Name: (U) Launch Requirements
 
 ### Successful Resolution (Dry-Run)
 ```
-[INFO] Source folder ID EGL_CV-FLD-281 has mapped parent path: 'EAGLET Subsystem Requirements'
+[INFO] Source folder ID PROJ-FLD-281 has mapped parent path: 'Project Subsystem Requirements'
 [INFO] Resolving folder name: (U) Launch Requirements
 [INFO] Resolved existing folder by source ID map -> Jama ID 1234567
 [INFO] Existing folder childItemType: 87 matches expected: 87 (compatible)
@@ -105,9 +105,9 @@ Name: (U) Launch Requirements
 
 ### Failed Resolution
 ```
-[INFO] Source folder ID EGL_CV-FLD-282 has mapped parent path: 'EAGLET Subsystem Requirements/DFCS SRS'
+[INFO] Source folder ID PROJ-FLD-282 has mapped parent path: 'Project Subsystem Requirements/Component SRS'
 [INFO] Resolving folder name: (U) Software Requirements
-[ERROR] Could not resolve mapped parent path 'EAGLET Subsystem Requirements/DFCS SRS' for source folder EGL_CV-FLD-282.
+[ERROR] Could not resolve mapped parent path 'Project Subsystem Requirements/Component SRS' for source folder PROJ-FLD-282.
 The path does not exist in Jama. No folder will be created.
 ```
 
@@ -124,7 +124,7 @@ The path does not exist in Jama. No folder will be created.
 
 ### Folder Not Found Under Parent
 ```
-ValueError: Folder 'Launch Requirements' (ID: EGL_CV-FLD-281) not found in Jama.
+ValueError: Folder 'Launch Requirements' (ID: PROJ-FLD-281) not found in Jama.
 Set CREATE_MISSING_FOLDERS=true to create missing folders, or provide explicit Jama ID or map entry.
 ```
 
@@ -181,18 +181,18 @@ Cannot determine which to use. Please provide explicit Jama ID or Document Key.
 ```python
 FOLDER_SOURCE_ID_TO_PARENT_PATH = {
     # Root-level folder
-    "EGL_CV-FLD-265": "",  # Empty = direct child of root
+    "PROJ-FLD-265": "",  # Empty = direct child of root
     
     # First-level folders
-    "EGL_CV-FLD-266": "EAGLET Subsystem Requirements",
-    "EGL_CV-FLD-272": "EAGLET Subsystem Requirements",
+    "PROJ-FLD-266": "Project Subsystem Requirements",
+    "PROJ-FLD-272": "Project Subsystem Requirements",
     
     # Nested folders (2 levels)
-    "EGL_CV-FLD-267": "EAGLET Subsystem Requirements/(U) Starshield Requirements",
-    "EGL_CV-FLD-269": "EAGLET Subsystem Requirements/(U) Mission Computer Requirements",
+    "PROJ-FLD-267": "Project Subsystem Requirements/(U) Component A Requirements",
+    "PROJ-FLD-269": "Project Subsystem Requirements/(U) Component B Requirements",
     
     # Deeply nested (3 levels)
-    "EGL_CV-FLD-282": "EAGLET Subsystem Requirements/DFCS SRS/Software Requirements",
+    "PROJ-FLD-282": "Project Subsystem Requirements/Component SRS/Software Requirements",
 }
 ```
 

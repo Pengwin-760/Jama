@@ -15,13 +15,13 @@ The script now robustly resolves existing Jama folders by matching the spreadshe
 ### Lookup Process:
 
 ```
-GET /rest/v1/items?project=279&contains=EGL_CV-FLD-211&startAt=0&maxResults=20
+GET /rest/v1/items?project=<project_id>&contains=PROJ-FLD-211&startAt=0&maxResults=20
 ```
 
 Filters applied:
-- `item.documentKey == "EGL_CV-FLD-211"` (exact match)
+- `item.documentKey == "PROJ-FLD-211"` (exact match)
 - `item.itemType == 32` (Folder type)
-- `item.project == 279` (correct project)
+- `item.project == <project_id>` (correct project)
 
 Results:
 - **Exactly 1 match** → Use that folder (action = RESOLVE)
@@ -34,7 +34,7 @@ Results:
 
 ```env
 JAMA_BASE_URL=https://your-jama-instance.com/rest/v1
-JAMA_PROJECT_ID=279
+JAMA_PROJECT_ID=<your_project_id>
 RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY=true
 CREATE_MISSING_FOLDERS=false
 ```
@@ -48,7 +48,7 @@ DEBUG_JAMA_GET=true
 Enables detailed logging of GET requests (non-sensitive data only):
 ```
 [DEBUG] GET URL: https://your-jama-instance.com/rest/v1/items
-[DEBUG] GET params: {'project': 279, 'contains': 'EGL_CV-FLD-211', 'startAt': 0, 'maxResults': 20}
+[DEBUG] GET params: {'project': <project_id>, 'contains': 'PROJ-FLD-211', 'startAt': 0, 'maxResults': 20}
 [DEBUG] GET status: 200
 [DEBUG] GET content-type: application/json
 [DEBUG] GET response preview (first 500 chars): {"data":[...]}
@@ -63,7 +63,7 @@ If the API returns HTML instead of JSON, you'll see:
 ```
 GET /items did not return JSON.
 Status: 200
-URL: https://your-jama-instance.com/rest/v1/items?project=279&contains=EGL_CV-FLD-211
+URL: https://your-jama-instance.com/rest/v1/items?project=<project_id>&contains=PROJ-FLD-211
 Content-Type: text/html
 Response preview:
 <html>...
@@ -80,7 +80,7 @@ Likely causes: authentication redirect, wrong JAMA_BASE_URL, SSL/proxy issue, or
 ### Multiple Matches:
 
 ```
-Found 2 folders with documentKey 'EGL_CV-FLD-211'.
+Found 2 folders with documentKey 'PROJ-FLD-211'.
 documentKey should be unique. Please provide explicit Jama ID to resolve ambiguity.
 ```
 
@@ -89,7 +89,7 @@ documentKey should be unique. Please provide explicit Jama ID to resolve ambigui
 ### Folder Not Found:
 
 ```
-Folder with documentKey 'EGL_CV-FLD-211' not found in Jama.
+Folder with documentKey 'PROJ-FLD-211' not found in Jama.
 Set CREATE_MISSING_FOLDERS=true to create missing folders,
 or provide explicit Jama ID to update existing folder.
 ```
@@ -106,15 +106,15 @@ or provide explicit Jama ID to update existing folder.
 Resolved folders show:
 ```csv
 excel_row,action,status,jama_id,document_key,global_id,resolved_by,...
-2,RESOLVE,RESOLVED,123456,EGL_CV-FLD-211,GID-123,document_key,...
+2,RESOLVE,RESOLVED,999999,PROJ-FLD-211,GID-XXXXX,document_key,...
 ```
 
 ### Console Output
 
 ```
-[INFO] Attempting to resolve folder by documentKey: EGL_CV-FLD-211
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-211' -> Jama ID 123456
-[OK] Resolved and updated folder 123456
+[INFO] Attempting to resolve folder by documentKey: PROJ-FLD-211
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-211' -> Jama ID 999999
+[OK] Resolved and updated folder 999999
 ```
 
 ### Summary Report

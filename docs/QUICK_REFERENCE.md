@@ -21,8 +21,8 @@
 ```env
 # === REQUIRED ===
 JAMA_BASE_URL=https://your-jama-instance.com/rest/v1
-JAMA_PROJECT_ID=279
-ROOT_PARENT_ITEM_ID=67890
+JAMA_PROJECT_ID=<your_project_id>
+ROOT_PARENT_ITEM_ID=<root_parent_id>
 
 # Authentication (pick one)
 JAMA_CLIENT_ID=your_client_id
@@ -144,7 +144,7 @@ Likely causes: authentication redirect, wrong JAMA_BASE_URL...
 ```
 **Fixed:** Now uses cache:
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 [INFO] Cached 123 folders by documentKey.
 (0 additional API calls for folder lookups)
 ```

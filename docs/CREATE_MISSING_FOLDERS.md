@@ -56,22 +56,22 @@ Solution: Enable RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY=true
 ### Existing Folder Found
 ```
 [INFO] Folder row - attempting to resolve existing folder:
-[INFO]   Excel ID: EGL_CV-FLD-281
+[INFO]   Excel ID: PROJ-FLD-281
 [INFO]   Folder Name: (U) Launch Requirements
-[INFO] Attempting to resolve folder by documentKey from Excel ID: EGL_CV-FLD-281
+[INFO] Attempting to resolve folder by documentKey from Excel ID: PROJ-FLD-281
 [INFO] ✓ Found by Excel ID as documentKey
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-281' -> Jama ID 1182453
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-281' -> Jama ID 999999
 [INFO] Registered as current parent. No folder will be created.
 ```
 
 ### Missing Folder (Will Create)
 ```
 [INFO] Folder row - attempting to resolve existing folder:
-[INFO]   Excel ID: EGL_CV-FLD-999
+[INFO]   Excel ID: PROJ-FLD-999
 [INFO]   Folder Name: (U) New Requirements
-[INFO] Attempting to resolve folder by documentKey from Excel ID: EGL_CV-FLD-999
-[INFO] ✗ Not found in Jama by documentKey 'EGL_CV-FLD-999'
-[INFO] Folder documentKey 'EGL_CV-FLD-999' was not found in Jama after lookup.
+[INFO] Attempting to resolve folder by documentKey from Excel ID: PROJ-FLD-999
+[INFO] ✗ Not found in Jama by documentKey 'PROJ-FLD-999'
+[INFO] Folder documentKey 'PROJ-FLD-999' was not found in Jama after lookup.
 [INFO] CREATE_MISSING_FOLDERS=true, so a new folder will be created.
 ```
 
@@ -79,19 +79,19 @@ Solution: Enable RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY=true
 
 **Existing folder:**
 ```
-[DRY RUN] Resolved folder by documentKey EGL_CV-FLD-281 -> Jama ID 1182453
+[DRY RUN] Resolved folder by documentKey PROJ-FLD-281 -> Jama ID 999999
 [DRY RUN] Registered as current parent. No folder will be created.
 ```
 
 **Missing folder:**
 ```
-[INFO] Folder documentKey 'EGL_CV-FLD-999' was not found in Jama after lookup.
+[INFO] Folder documentKey 'PROJ-FLD-999' was not found in Jama after lookup.
 [INFO] CREATE_MISSING_FOLDERS=true, so a new folder will be created.
 [DRY RUN] Would POST:
 {
   "fields": {"name": "(U) New Requirements"},
   "itemType": 32,
-  "location": {"parent": {"item": 1393283}, "sortOrder": 0},
+  "location": {"parent": {"item": <parent_id>}, "sortOrder": 0},
   "childItemType": 87
 }
 ```
@@ -102,7 +102,7 @@ Solution: Enable RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY=true
 ```
 [INFO] New itemType: 32
 [INFO] New childItemType: 87
-[OK] Created new Folder with Jama ID: 1234567, documentKey: EGL_CV-FLD-999
+[OK] Created new Folder with Jama ID: 999999, documentKey: PROJ-FLD-999
 ```
 
 ## When to Use Each Setting
@@ -141,9 +141,9 @@ USE_EXCEL_ID_AS_DOCUMENT_KEY=true
 **Excel:**
 ```
 ID              | Item Type | Name
-EGL_CV-FLD-281  | Folder    | (U) Launch Requirements      (EXISTS)
-EGL_CV-FLD-999  | Folder    | (U) New Requirements         (NEW)
-EGL_CV-SS-001   | Subsystem | BIT Status
+PROJ-FLD-281    | Folder    | (U) Launch Requirements      (EXISTS)
+PROJ-FLD-999    | Folder    | (U) New Requirements         (NEW)
+PROJ-SS-001     | Subsystem | BIT Status
 ```
 
 **Result:**
@@ -162,9 +162,9 @@ RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY=true
 **Excel:**
 ```
 ID              | Item Type | Name
-EGL_CV-FLD-281  | Folder    | (U) Launch Requirements
-EGL_CV-FLD-999  | Folder    | (U) Missing Folder
-EGL_CV-SS-001   | Subsystem | BIT Status
+PROJ-FLD-281    | Folder    | (U) Launch Requirements
+PROJ-FLD-999    | Folder    | (U) Missing Folder
+PROJ-SS-001     | Subsystem | BIT Status
 ```
 
 **Result:**
@@ -177,7 +177,7 @@ The script now properly extracts created item IDs:
 
 **✅ Correct:**
 ```
-[OK] Created new Folder with Jama ID: 1234567, documentKey: EGL_CV-FLD-999
+[OK] Created new Folder with Jama ID: 999999, documentKey: PROJ-FLD-999
 ```
 
 **❌ Error (if ID missing):**

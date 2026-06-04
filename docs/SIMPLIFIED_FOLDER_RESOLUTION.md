@@ -71,31 +71,31 @@ USE_STATIC_FOLDER_SOURCE_ID_MAP=false
 ### Excel File
 ```
 ID              | Item Type              | Name
-EGL_CV-FLD-276  | Folder                 | (U) Flight Computer Assembly Requirements
-EGL_CV-FLD-277  | Folder                 | Status and Monitoring
-EGL_CV-SS-001   | Subsystem Requirement  | BIT Status Reporting
+PROJ-FLD-276  | Folder                 | (U) Flight Computer Assembly Requirements
+PROJ-FLD-277  | Folder                 | Status and Monitoring
+PROJ-SS-001   | Subsystem Requirement  | BIT Status Reporting
 ```
 
 ### Behavior
 
-**Row 1: Folder EGL_CV-FLD-276**
+**Row 1: Folder PROJ-FLD-276**
 ```
-[INFO] Attempting to resolve folder by documentKey from Excel ID: EGL_CV-FLD-276
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-276' -> Jama ID 1234567
+[INFO] Attempting to resolve folder by documentKey from Excel ID: PROJ-FLD-276
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-276' -> Jama ID 999999
 [INFO] Registered as current parent. No folder will be created.
 ```
 
-**Row 2: Folder EGL_CV-FLD-277**
+**Row 2: Folder PROJ-FLD-277**
 ```
-[INFO] Attempting to resolve folder by documentKey from Excel ID: EGL_CV-FLD-277
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-277' -> Jama ID 1234568
+[INFO] Attempting to resolve folder by documentKey from Excel ID: PROJ-FLD-277
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-277' -> Jama ID 888888
 [INFO] Registered as current parent. No folder will be created.
 ```
 
 **Row 3: Subsystem Requirement**
 ```
 [INFO] Parent item ID: 1234568
-[INFO] Parent documentKey: EGL_CV-FLD-277
+[INFO] Parent documentKey: PROJ-FLD-277
 [INFO] Parent name: Status and Monitoring
 [INFO] Parent itemType: 32
 [INFO] Parent childItemType: 87 (parent accepts this content type)
@@ -108,13 +108,13 @@ EGL_CV-SS-001   | Subsystem Requirement  | BIT Status Reporting
 
 ### Successful Resolution
 ```
-[DRY RUN] Resolved folder by documentKey EGL_CV-FLD-276 -> Jama ID 1234567
+[DRY RUN] Resolved folder by documentKey PROJ-FLD-276 -> Jama ID 999999
 [DRY RUN] Registered as current parent. No folder will be created.
 ```
 
 ### Folder Not Found
 ```
-[ERROR] Folder documentKey 'EGL_CV-FLD-276' was not found in Jama.
+[ERROR] Folder documentKey 'PROJ-FLD-276' was not found in Jama.
 Folder name: (U) Flight Computer Assembly Requirements
 CREATE_MISSING_FOLDERS=false, so no duplicate folder was created.
 Solution: Either provide the Jama ID in Excel, or set CREATE_MISSING_FOLDERS=true.
@@ -142,7 +142,7 @@ Solution: Either provide the Jama ID in Excel, or set CREATE_MISSING_FOLDERS=tru
 
 ### Folder Resolved
 ```
-[OK] Resolved folder by documentKey EGL_CV-FLD-276 -> Jama ID 1234567
+[OK] Resolved folder by documentKey PROJ-FLD-276 -> Jama ID 999999
 [OK] Registered as current parent. No folder created.
 ```
 
@@ -156,7 +156,7 @@ Solution: Either provide the Jama ID in Excel, or set CREATE_MISSING_FOLDERS=tru
 
 ### Folder documentKey Not Found
 ```
-Folder documentKey 'EGL_CV-FLD-276' was not found in Jama.
+Folder documentKey 'PROJ-FLD-276' was not found in Jama.
 Folder name: (U) Flight Computer Assembly Requirements
 CREATE_MISSING_FOLDERS=false, so no duplicate folder was created.
 Solution: Either provide the Jama ID in Excel, or set CREATE_MISSING_FOLDERS=true.
@@ -167,7 +167,7 @@ Solution: Either provide the Jama ID in Excel, or set CREATE_MISSING_FOLDERS=tru
 ### Parent childItemType Mismatch
 ```
 Cannot create Subsystem Requirement (itemType=87) under parent item 1234567.
-Parent documentKey: EGL_CV-FLD-276
+Parent documentKey: PROJ-FLD-276
 Parent name: Flight Computer Assembly Requirements
 Parent itemType: 32
 Parent childItemType: 243

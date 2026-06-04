@@ -95,7 +95,7 @@ python3 -m py_compile csv2jama.py
 ### Startup
 ```
 [INFO] Jama base URL: https://your-jama-instance.com/rest/v1
-[INFO] Jama project ID: 279
+[INFO] Jama project ID: <project_id>
 ...
 Use Folder Cache:                     True
 Jama Items Page Size:                 50
@@ -103,7 +103,7 @@ Jama Items Page Size:                 50
 
 ### Cache Building
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 (Making API calls with maxResults=50)
 [INFO] Fetched 523 total items from project.
 [INFO] Cached 123 folders by documentKey.
@@ -111,9 +111,9 @@ Jama Items Page Size:                 50
 
 ### API Calls
 ```
-GET /items?project=279&startAt=0&maxResults=50   ✓ 200 OK
-GET /items?project=279&startAt=50&maxResults=50  ✓ 200 OK
-GET /items?project=279&startAt=100&maxResults=50 ✓ 200 OK
+GET /items?project=<project_id>&startAt=0&maxResults=50   ✓ 200 OK
+GET /items?project=<project_id>&startAt=50&maxResults=50  ✓ 200 OK
+GET /items?project=<project_id>&startAt=100&maxResults=50 ✓ 200 OK
 ...
 ```
 
@@ -121,8 +121,8 @@ GET /items?project=279&startAt=100&maxResults=50 ✓ 200 OK
 
 ### Folder Resolution
 ```
-[INFO] Attempting to resolve folder by documentKey: EGL_CV-FLD-220
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-220' -> Jama ID 1175461
+[INFO] Attempting to resolve folder by documentKey: PROJ-FLD-220
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-220' -> Jama ID 999999
 ```
 
 ## Performance Impact

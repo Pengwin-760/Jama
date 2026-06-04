@@ -176,7 +176,7 @@ elif action == "SKIP":
 
 **Output:**
 ```
-[OK] Resolved existing Folder by jama_id -> Jama ID 1175461
+[OK] Resolved existing Folder by jama_id -> Jama ID 999999
 [OK] Existing item registered as parent container. No update performed.
 ```
 
@@ -215,7 +215,7 @@ elif action == "SKIP":
      },
      "itemType": 97,  # Stakeholder Requirement
      "location": {
-       "parent": {"item": 1175461},  # Resolved folder
+       "parent": {"item": 999999},  # Resolved folder
        "sortOrder": 0
      }
    }

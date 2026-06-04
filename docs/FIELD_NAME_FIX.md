@@ -263,13 +263,13 @@ JAMA_FIELD_ID=
 **Example valid:**
 ```
 ID              | Item Type                  | Name
-EGL_CV-SR-001   | Stakeholder Requirement    | System shall support launch modes
+PROJ-SR-001     | Stakeholder Requirement    | System shall support launch modes
 ```
 
 **Example invalid:**
 ```
 ID              | Item Type                  | Name
-EGL_CV-SR-001   | Stakeholder Requirement    | (blank)
+PROJ-SR-001     | Stakeholder Requirement    | (blank)
 ```
 
 **Result:** Row fails with clear error.
@@ -367,19 +367,19 @@ JAMA_FIELD_NAME=invalidFieldName
 
 ```
 [ROW 5] CREATE Stakeholder Requirement: System shall support launch modes
-[INFO] Parent Jama item ID: 1175461
+[INFO] Parent Jama item ID: <parent_id>
 [DEBUG] POST fields keys: ['name', 'description', 'system_id']
 [DRY RUN] Would POST:
 {
   "fields": {
     "name": "System shall support launch modes",
     "description": "The system must provide...",
-    "system_id": "EGL_CV-SR-001"
+    "system_id": "PROJ-SR-001"
   },
   "itemType": 97,
   "location": {
     "parent": {
-      "item": 1175461
+      "item": <parent_id>
     },
     "sortOrder": 0
   }

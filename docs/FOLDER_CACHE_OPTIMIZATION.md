@@ -9,9 +9,9 @@ The folder documentKey lookup has been optimized to use a cache that fetches all
 ### Before (Slow):
 ```
 For each Folder row without Jama ID:
-  → GET /items?project=279&contains=EGL_CV-FLD-220&startAt=0&maxResults=20
-  → GET /items?project=279&contains=EGL_CV-FLD-211&startAt=0&maxResults=20
-  → GET /items?project=279&contains=EGL_CV-FLD-218&startAt=0&maxResults=20
+  → GET /items?project=<project_id>&contains=PROJ-FLD-220&startAt=0&maxResults=20
+  → GET /items?project=<project_id>&contains=PROJ-FLD-211&startAt=0&maxResults=20
+  → GET /items?project=<project_id>&contains=PROJ-FLD-218&startAt=0&maxResults=20
   → ... (one GET per folder)
 ```
 
@@ -20,8 +20,8 @@ For each Folder row without Jama ID:
 ### After (Fast):
 ```
 At startup:
-  → GET /items?project=279&startAt=0&maxResults=100
-  → GET /items?project=279&startAt=100&maxResults=100
+  → GET /items?project=<project_id>&startAt=0&maxResults=100
+  → GET /items?project=<project_id>&startAt=100&maxResults=100
   → ... (paginate until all project items fetched)
   → Build cache: documentKey -> folder item
 
@@ -68,7 +68,7 @@ DEBUG_JAMA_GET=true
 When the first folder without Jama ID is encountered:
 
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 [INFO] Fetched 523 total items from project.
 [INFO] Cached 123 folders by documentKey.
 ```
@@ -93,8 +93,8 @@ When the first folder without Jama ID is encountered:
 ### 2. Folder Resolution (Per Folder Row)
 
 ```
-[INFO] Attempting to resolve folder by documentKey: EGL_CV-FLD-220
-[INFO] Resolved existing folder by documentKey 'EGL_CV-FLD-220' -> Jama ID 1175461
+[INFO] Attempting to resolve folder by documentKey: PROJ-FLD-220
+[INFO] Resolved existing folder by documentKey 'PROJ-FLD-220' -> Jama ID 999999
 ```
 
 **Process:**
@@ -111,7 +111,7 @@ If multiple folders have the same documentKey:
 [WARN] Found 2 documentKeys with multiple folders (will fail if resolved).
 ...
 [ERROR] Row 96 failed.
-[ERROR] Folder documentKey 'EGL_CV-FLD-220' matched 2 folders. Please provide explicit Jama ID to resolve ambiguity.
+[ERROR] Folder documentKey 'PROJ-FLD-220' matched 2 folders. Please provide explicit Jama ID to resolve ambiguity.
 ```
 
 **Duplicates are detected during cache build and reported clearly.**
@@ -168,7 +168,7 @@ Typical folder item is ~1-2KB. For 100 folders:
 When `DEBUG_JAMA_GET=true`, the cache building temporarily suppresses debug output to avoid excessive logging:
 
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 [DEBUG] Temporarily suppressing GET debug output during cache build...
 [INFO] Fetched 523 total items from project.
 [INFO] Cached 123 folders by documentKey.
@@ -223,7 +223,7 @@ Filter and return
 
 **Symptoms:**
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 (long pause)
 [INFO] Fetched 50000 total items from project.
 ```
@@ -280,7 +280,7 @@ JAMA_ITEMS_PAGE_SIZE=200  # or 500
 ```
 [WARN] Found 2 documentKeys with multiple folders (will fail if resolved).
 ...
-[ERROR] Folder documentKey 'EGL_CV-FLD-220' matched 2 folders.
+[ERROR] Folder documentKey 'PROJ-FLD-220' matched 2 folders.
 ```
 
 **Solution:**

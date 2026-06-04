@@ -82,8 +82,8 @@ RESOLVE_EXISTING_FOLDERS_BY_DOCUMENT_KEY=true
 CREATE_MISSING_FOLDERS=true
 
 # Item Types
-JAMA_ITEM_TYPE_FOLDER=32
-JAMA_ITEM_TYPE_SOFTWARE_REQUIREMENT=112
+JAMA_ITEM_TYPE_FOLDER=<your_folder_type_id>
+JAMA_ITEM_TYPE_SOFTWARE_REQUIREMENT=<your_requirement_type_id>
 
 # Verification Method (optional - auto-detected if blank)
 JAMA_FIELD_VERIFICATION_METHOD=
@@ -228,6 +228,10 @@ See `docs/` folder for detailed documentation:
 - `DUPLICATE_PREVENTION.md` - How duplicate prevention works
 - `VERIFICATION_ARRAY_FORMAT_FIX.md` - Verification method format
 - `FIX_ITEM_TYPE_ID.md` - item_type_id fix details
+- `CLAUDE_PROJECT_GUIDE.md` - Project behavior and coding rules
+- `DEVELOPER_GUIDE.md` - Technical implementation details
+
+For Claude Code agents, see `.claude/skills/run-jama-importer/SKILL.md` for setup and execution instructions.
 
 ## License
 

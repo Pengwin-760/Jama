@@ -104,7 +104,7 @@ Sample Jama payload:
 
 **Before:**
 ```text
-Row 8 | EGL_CV-SWREQ-001 | Software Requirement | VMC Power-On BIT (PBIT) Execution | name 'item_type_id' is not defined
+Row 8 | PROJ-SWREQ-001 | Software Requirement | Component Power-On BIT (PBIT) Execution | name 'item_type_id' is not defined
 ```
 
 **After:**

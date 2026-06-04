@@ -165,7 +165,7 @@ JAMA_ITEMS_PAGE_SIZE=0
 
 ```
 [INFO] Jama base URL: https://your-jama-instance.com/rest/v1
-[INFO] Jama project ID: 279
+[INFO] Jama project ID: <project_id>
 ...
 Use Folder Cache:                     True
 Jama Items Page Size:                 50
@@ -194,16 +194,16 @@ Jama Items Page Size:                 50
 ### Expected Output
 
 ```
-[INFO] Building folder documentKey cache from Jama project 279...
+[INFO] Building folder documentKey cache from Jama project <project_id>...
 [INFO] Fetched 523 total items from project.
 [INFO] Cached 123 folders by documentKey.
 ```
 
 **API calls made:**
 ```
-GET /items?project=279&startAt=0&maxResults=50
-GET /items?project=279&startAt=50&maxResults=50
-GET /items?project=279&startAt=100&maxResults=50
+GET /items?project=<project_id>&startAt=0&maxResults=50
+GET /items?project=<project_id>&startAt=50&maxResults=50
+GET /items?project=<project_id>&startAt=100&maxResults=50
 ...
 (11 total calls for 523 items)
 ```
@@ -254,7 +254,7 @@ python3 csv2jama.py --mode upsert --dry-run
 **Look for:**
 ```
 [DEBUG] GET URL: https://your-jama-instance.com/rest/v1/items
-[DEBUG] GET params: {'project': 279, 'startAt': 0, 'maxResults': 50}
+[DEBUG] GET params: {'project': <project_id>, 'startAt': 0, 'maxResults': 50}
 [DEBUG] GET status: 200
 ```
 

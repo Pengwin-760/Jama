@@ -21,8 +21,8 @@ docs/           - Documentation markdown files
 ### Files Moved
 
 #### To `input/` (2 files)
-- `EAGLET SS Jama IMPORT.xlsx` → `input/EAGLET SS Jama IMPORT.xlsx`
-- `EAGLET SW Jama IMPORT.xlsx` → `input/EAGLET SW Jama IMPORT.xlsx`
+- `PROJECT_IMPORT.xlsx` → `input/PROJECT_IMPORT.xlsx`
+- `PROJECT_IMPORT_SW.xlsx` → `input/PROJECT_IMPORT_SW.xlsx`
 
 #### To `output/` (2 files)
 - `import_results.csv` → `output/import_results.csv`
@@ -85,7 +85,7 @@ All `.md` files moved to `docs/`, including:
 - **Line 671**: `IMPORT_RESULTS_CSV = "output/import_results.csv"` (was `"import_results.csv"`)
 
 #### .env.example
-- **Line 7**: `INPUT_FILE=input/EAGLET SS Jama IMPORT.xlsx` (was `EAGLET SS Jama IMPORT.xlsx`)
+- **Line 7**: `INPUT_FILE=input/PROJECT_IMPORT.xlsx` (was `PROJECT_IMPORT.xlsx`)
 
 #### .gitignore
 - Added: `output/`, `archive/`, `~$*.xlsx`, `test_venv/`, `*.log`, `*.bak`
@@ -128,12 +128,12 @@ You need to update your `.env` file with the new path:
 
 **OLD:**
 ```env
-INPUT_FILE=EAGLET SS Jama IMPORT.xlsx
+INPUT_FILE=PROJECT_IMPORT.xlsx
 ```
 
 **NEW:**
 ```env
-INPUT_FILE=input/EAGLET SS Jama IMPORT.xlsx
+INPUT_FILE=input/PROJECT_IMPORT.xlsx
 ```
 
 **No other changes needed** - `JAMA_SSL_CERT=certs/jama_cert_chain.pem` remains the same.
@@ -170,8 +170,8 @@ python csv2jama.py --execute    # Execute import
 │   └── ... (other certs)
 │
 ├── input/                   # Excel files (NEW LOCATION)
-│   ├── EAGLET SS Jama IMPORT.xlsx
-│   └── EAGLET SW Jama IMPORT.xlsx
+│   ├── PROJECT_IMPORT.xlsx
+│   └── PROJECT_IMPORT_SW.xlsx
 │
 ├── output/                  # Generated reports (NEW LOCATION)
 │   ├── import_results.csv

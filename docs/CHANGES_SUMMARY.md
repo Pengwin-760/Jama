@@ -133,7 +133,7 @@ JAMA_OAUTH_TOKEN_URL=https://your-jama-instance.com/rest/oauth/token
 Script now shows at startup (lines ~273-285):
 ```
 [INFO] Jama base URL: https://your-jama-instance.com/rest/v1
-[INFO] Jama project ID: 279
+[INFO] Jama project ID: <project_id>
 [INFO] OAuth token URL configured: no (using default)
 [INFO] SSL verify: certs/jama_cert_chain.pem
 [INFO] Debug Jama Auth: False
@@ -246,7 +246,7 @@ Expected output:
 [DEBUG] OAuth status: 200
 ...
 [DEBUG] GET URL: https://your-jama-instance.com/rest/v1/items
-[DEBUG] GET params: {'project': 279, 'contains': 'EGL_CV-FLD-220', ...}
+[DEBUG] GET params: {'project': <project_id>, 'contains': 'PROJ-FLD-220', ...}
 [DEBUG] GET status: 200
 ```
 

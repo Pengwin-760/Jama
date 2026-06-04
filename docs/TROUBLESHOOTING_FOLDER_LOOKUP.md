@@ -48,13 +48,13 @@ Test the API endpoint manually:
 
 ```bash
 # Test with curl (adjust credentials)
-curl -X GET "https://your-jama-instance.com/rest/v1/items?project=279&contains=EGL_CV-FLD-211" \
+curl -X GET "https://your-jama-instance.com/rest/v1/items?project=<project_id>&contains=PROJ-FLD-211" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Accept: application/json" \
   --cert certs/jama_cert_chain.pem
 
 # Or with OAuth
-curl -X GET "https://your-jama-instance.com/rest/v1/items?project=279&contains=EGL_CV-FLD-211" \
+curl -X GET "https://your-jama-instance.com/rest/v1/items?project=<project_id>&contains=PROJ-FLD-211" \
   -u "CLIENT_ID:CLIENT_SECRET" \
   -H "Accept: application/json"
 ```
@@ -94,7 +94,7 @@ JAMA_SSL_VERIFY=false  # TEMPORARY - for debugging only
 ### 4. Project ID Incorrect
 Make sure JAMA_PROJECT_ID matches your actual Jama project:
 ```env
-JAMA_PROJECT_ID=279
+JAMA_PROJECT_ID=<your_project_id>
 ```
 
 ## Recommended Workflow
